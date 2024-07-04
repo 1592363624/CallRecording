@@ -13,4 +13,10 @@
         <PackageReference Include="NAudio" Version="2.2.1"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="src\通用软件图片.ico">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>

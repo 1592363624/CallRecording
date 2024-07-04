@@ -1,21 +1,93 @@
-﻿using System.IO;
+﻿using System.ComponentModel;
+using System.Drawing;
+using System.IO;
 using System.Windows;
+using System.Windows.Forms;
 using FlaUI.UIA3;
 using NAudio.Wave;
+using Application = System.Windows.Application;
+using MessageBox = System.Windows.MessageBox;
 
 namespace CallRecording;
 
 public partial class MainWindow : Window
 {
+    private NotifyIcon _notifyIcon;
     private Thread monitoringThread;
     private Recorder recorder;
     private bool stopMonitoring;
 
     public MainWindow()
     {
-        InitializeComponent();
+        Loaded += OnMainWindowLoaded; // 订阅 Loaded 事件
         WindowState = WindowState.Minimized; // 启动时最小化窗口
+
+        InitializeComponent();
+        Tuopan();
         StartMonitoring();
+    }
+
+    private void OnMainWindowLoaded(object sender, RoutedEventArgs e)
+    {
+        Hide();
+    }
+
+    private void Tuopan()
+    {
+        // 初始化托盘图标
+        _notifyIcon = new NotifyIcon
+        {
+            Icon = new Icon("src/通用软件图片.ico"),
+            Visible = true,
+            Text = "通话录音助手"
+        };
+
+        // 添加托盘图标的右键菜单
+        _notifyIcon.ContextMenuStrip = new ContextMenuStrip();
+        _notifyIcon.ContextMenuStrip.Items.Add("显示", null, ShowApp);
+        _notifyIcon.ContextMenuStrip.Items.Add("退出", null, ExitApp);
+
+        // 在托盘图标双击时显示窗口
+        _notifyIcon.DoubleClick += (s, e) => ShowApp(null, null);
+    }
+
+// 显示应用程序
+    private void ShowApp(object sender, EventArgs e)
+    {
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    // 退出应用程序
+    private void ExitApp(object sender, EventArgs e)
+    {
+        _notifyIcon.Visible = false;
+        _notifyIcon.Dispose();
+        Application.Current.Shutdown();
+    }
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        if (WindowState == WindowState.Minimized) Hide();
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        // 当窗口关闭时，显示确认提示
+        if (MessageBox.Show("确定要退出吗?", "确认", MessageBoxButton.YesNo) == MessageBoxResult.No)
+        {
+            e.Cancel = true;
+            Hide();
+        }
+        else
+        {
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
+        }
+
+        base.OnClosing(e);
     }
 
     private void StartMonitoring()
