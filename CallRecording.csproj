@@ -6,6 +6,15 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <UseWPF>true</UseWPF>
+        <ApplicationIcon>src\通用软件图片.ico</ApplicationIcon>
+        <IsPackable>false</IsPackable>
+        <Title>通话录音助手</Title>
+        <Description>通话录音助手</Description>
+        <Copyright>Shell</Copyright>
+        <PackageProjectUrl>https://52shell.ltd</PackageProjectUrl>
+        <RepositoryType>GitHub</RepositoryType>
+        <AssemblyVersion>1.0</AssemblyVersion>
+        <FileVersion>1.0</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,10 +23,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="src\通用软件图片.ico"/>
-        <Resource Include="src\通用软件图片.ico">
+        <EmbeddedResource Include="src\通用软件图片.ico">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Resource>
+        </EmbeddedResource>
     </ItemGroup>
 
 </Project>

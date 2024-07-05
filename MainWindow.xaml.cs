@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Timers;
 using System.Windows;
 using System.Windows.Forms;
@@ -38,13 +39,24 @@ public partial class MainWindow : Window
 
     private void SetupTrayIcon()
     {
-        // 初始化托盘图标
-        _notifyIcon = new NotifyIcon
+        // 从嵌入资源中加载图标
+        var assembly = Assembly.GetExecutingAssembly();
+        using (var iconStream = assembly.GetManifestResourceStream("CallRecording.src.通用软件图片.ico"))
         {
-            Icon = new Icon("src/通用软件图片.ico"),
-            Visible = true,
-            Text = "通话录音助手"
-        };
+            if (iconStream == null)
+            {
+                // 如果图标流为空，记录日志
+                _logger.LogMessage("无法加载图标，图标流为空。");
+                return;
+            }
+
+            _notifyIcon = new NotifyIcon
+            {
+                Icon = new Icon(iconStream), // 从流中加载图标
+                Visible = true,
+                Text = "通话录音助手"
+            };
+        }
 
         // 添加托盘图标的右键菜单
         _notifyIcon.ContextMenuStrip = new ContextMenuStrip();
@@ -54,6 +66,7 @@ public partial class MainWindow : Window
         // 在托盘图标双击时显示窗口
         _notifyIcon.DoubleClick += (s, e) => ShowApp(null, null);
     }
+
 
     // 显示应用程序
     private void ShowApp(object sender, EventArgs e)
