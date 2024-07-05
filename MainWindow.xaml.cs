@@ -23,7 +23,7 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        // Loaded += OnMainWindowLoaded;
+        Loaded += OnMainWindowLoaded;
         WindowState = WindowState.Minimized; // 启动时最小化窗口
         InitializeComponent();
         _logger = new Logger(LogTextBox);
@@ -86,7 +86,7 @@ public partial class MainWindow : Window
     protected override void OnClosing(CancelEventArgs e)
     {
         // 当窗口关闭时，显示确认提示
-        if (MessageBox.Show("确定要退出吗?可以最小化在托盘默默地监测哟!", "确认", MessageBoxButton.YesNo) == MessageBoxResult.No)
+        if (MessageBox.Show("确定要退出吗? 可以最小化在托盘默默地监测哟!", "确认", MessageBoxButton.YesNo) == MessageBoxResult.No)
         {
             e.Cancel = true;
             Hide();

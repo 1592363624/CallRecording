@@ -14,9 +14,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="src\通用软件图片.ico">
+        <None Remove="src\通用软件图片.ico"/>
+        <Resource Include="src\通用软件图片.ico">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
+        </Resource>
     </ItemGroup>
 
 </Project>
