@@ -6,6 +6,7 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Forms;
 using FlaUI.UIA3;
+using Microsoft.Toolkit.Uwp.Notifications;
 using NAudio.Wave;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
@@ -24,6 +25,7 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        Notification();
         Loaded += OnMainWindowLoaded;
         WindowState = WindowState.Minimized; // 启动时最小化窗口
         InitializeComponent();
@@ -35,6 +37,17 @@ public partial class MainWindow : Window
     private void OnMainWindowLoaded(object sender, RoutedEventArgs e)
     {
         Hide();
+    }
+
+    public static void Notification()
+    {
+        // Requires Microsoft.Toolkit.Uwp.Notifications NuGet package version 7.0 or greater
+        new ToastContentBuilder()
+            .AddArgument("action", "viewConversation")
+            .AddArgument("conversationId", 9813)
+            .AddText("通话录音助手正在后台运行")
+            .AddText("点击此处关闭通知!")
+            .Show(); // Not seeing the Show() method? Make sure you have version 7.0, and if you're using .NET 6 (or later), then your TFM must be net6.0-windows10.0.17763.0 or greater
     }
 
     private void SetupTrayIcon()
