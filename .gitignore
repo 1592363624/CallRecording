@@ -3,3 +3,6 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+/.idea/.idea.CallRecording/.idea
+/.vs
+/CallRecording.sln.DotSettings.user
