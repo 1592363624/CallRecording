@@ -202,7 +202,7 @@ public class Utils
     // 动态生成文件名
     public static string GenerateFilename()
     {
-        return Path.Combine(GetDesktopPath(), $"{GetFormattedTime()}_wechat_call_recording.wav");
+        return Path.Combine(GetDesktopPath(), $"{GetFormattedTime()}_微信通话录音.wav");
     }
 }
 

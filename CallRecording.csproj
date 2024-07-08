@@ -12,7 +12,7 @@
         <Title>通话录音助手</Title>
         <Description>通话录音助手</Description>
         <Copyright>Shell</Copyright>
-        <PackageProjectUrl>https://52shell.ltd</PackageProjectUrl>
+        <PackageProjectUrl></PackageProjectUrl>
         <RepositoryType>GitHub</RepositoryType>
         <AssemblyVersion>1.0</AssemblyVersion>
         <FileVersion>1.0</FileVersion>
