@@ -9,6 +9,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        WindowState = WindowState.Minimized;
+
         Closing += MainWindow_Closing;
         // 订阅启动事件
         Loaded += (sender, e) =>
@@ -17,6 +19,7 @@ public partial class MainWindow : Window
             var mainViewModel = new MainViewModel();
             // 设置主窗口的数据上下文
             DataContext = mainViewModel;
+            Hide();
         };
     }
 

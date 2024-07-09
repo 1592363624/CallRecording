@@ -1,6 +1,4 @@
 ﻿using System.Windows;
-using CallRecording.ViewModels;
-using CallRecording.Views;
 using FlaUI.UIA3;
 
 namespace CallRecording.Models;
@@ -26,11 +24,6 @@ public static class WeChatCallDetector
         }
         catch (Exception ex)
         {
-            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                var logger = (Application.Current.MainWindow as MainWindow)?.DataContext as MainViewModel;
-                logger?.Logger.LogMessage($"微信通话检测时发生异常: {ex.Message}");
-            }));
             return false;
         }
     }

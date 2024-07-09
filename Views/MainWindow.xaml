@@ -7,11 +7,13 @@
         Title="通话录音助手" Height="350" Width="525">
 
     <Grid>
-        <!-- 绑定日志到 TextBox -->
-        <TextBox Text="{Binding LogsDisplay, Mode=OneWay}" IsReadOnly="True" VerticalScrollBarVisibility="Auto"
-                 Margin="10" />
+        <!-- 绑定日志到 ListBox -->
+        <ListBox ItemsSource="{Binding Logs}" />
         <!-- 清除日志按钮 -->
         <Button Content="清除日志" Command="{Binding ClearLogsCommand}" HorizontalAlignment="Right"
+                VerticalAlignment="Bottom" Margin="10" />
+        <!-- 选择保存路径按钮 -->
+        <Button Content="选择保存路径" Command="{Binding ChooseSavePathCommand}" HorizontalAlignment="Left"
                 VerticalAlignment="Bottom" Margin="10" />
     </Grid>
 </Window>

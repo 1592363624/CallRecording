@@ -1,4 +1,5 @@
-﻿using NAudio.Wave;
+﻿using System.IO;
+using NAudio.Wave;
 
 namespace CallRecording.Models;
 
@@ -16,13 +17,13 @@ public class Recorder
         _logger = logger;
     }
 
-    public void StartRecording()
+    public void StartRecording(string savePath)
     {
         lock (_lockObject)
         {
             if (_isRecording) return;
 
-            _outputFileName = Utils.GenerateFilename();
+            _outputFileName = Path.Combine(savePath, Utils.GenerateFilename());
             _waveSource = new WaveInEvent { WaveFormat = new WaveFormat(44100, 1) }; // 44100 Hz, Mono
             _waveSource.DataAvailable += OnDataAvailable;
             _waveSource.RecordingStopped += OnRecordingStopped;

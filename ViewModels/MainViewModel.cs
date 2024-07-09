@@ -1,6 +1,5 @@
 ﻿using System.Collections.ObjectModel;
-using System.Text;
-using System.Timers;
+using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 using CallRecording.Models;
@@ -8,46 +7,53 @@ using CallRecording.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Application = System.Windows.Application;
-using Timer = System.Timers.Timer;
 
 namespace CallRecording.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    private Timer _monitoringTimer;
+    private CancellationTokenSource _cancellationTokenSource;
+    private readonly Logger _logger;
     private readonly NotifyIcon _notifyIcon;
     private readonly Recorder _recorder;
-    private bool _stopMonitoring;
+
+    [ObservableProperty] private string _recordingSavePath;
 
     public MainViewModel()
     {
         Logs = new ObservableCollection<string>();
-        Logger = new Logger(Logs);
-        _recorder = new Recorder(Logger);
+        _logger = new Logger(Logs);
+        _recorder = new Recorder(_logger);
+
+        // 默认保存路径为用户的文档文件夹
+        RecordingSavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Recordings");
 
         // 显示启动通知
         NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
 
         // 设置系统托盘图标
-        _notifyIcon = TrayIconService.SetupTrayIcon(Logger, ShowApp, ExitApp);
+        _notifyIcon = TrayIconService.SetupTrayIcon(_logger, ShowApp, ExitApp);
 
         // 开始监控微信通话状态
         StartMonitoring();
     }
 
-    public Logger Logger { get; }
-
     public ObservableCollection<string> Logs { get; }
 
-    // 将日志集合转换为显示字符串
-    public string LogsDisplay
+    // 选择保存路径命令
+    [RelayCommand]
+    private void ChooseSavePath()
     {
-        get
+        using (var dialog = new FolderBrowserDialog())
         {
-            var sb = new StringBuilder();
-            foreach (var log in Logs) sb.AppendLine(log);
-
-            return sb.ToString();
+            dialog.Description = "选择录音文件保存位置";
+            dialog.SelectedPath = RecordingSavePath;
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                RecordingSavePath = dialog.SelectedPath;
+                _logger.LogMessage($"录音文件保存位置已设置为: {RecordingSavePath}");
+            }
         }
     }
 
@@ -55,72 +61,73 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ClearLogs()
     {
-        Logs.Clear();
-        Logger.LogMessage("日志已清除。");
-        OnPropertyChanged(nameof(LogsDisplay)); // 通知视图更新
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            Logs.Clear();
+            _logger.LogMessage("日志已清除。");
+        });
     }
 
     // 显示应用程序窗口
     private void ShowApp(object sender, EventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+        Application.Current.Dispatcher.Invoke(() =>
         {
             Application.Current.MainWindow?.Show();
             Application.Current.MainWindow.WindowState = WindowState.Normal;
             Application.Current.MainWindow.Activate();
-            Logger.LogMessage("应用程序窗口已显示。");
-            OnPropertyChanged(nameof(LogsDisplay)); // 通知视图更新
-        }));
+            _logger.LogMessage("应用程序窗口已显示。");
+        });
     }
 
     // 退出应用程序
     public void ExitApp(object sender, EventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+        Application.Current.Dispatcher.Invoke(() =>
         {
-            Logger.LogMessage("退出应用程序。");
+            _logger.LogMessage("退出应用程序。");
             TrayIconService.CleanupTrayIcon(_notifyIcon);
             Application.Current.Shutdown();
-        }));
+        });
     }
 
     // 开始监控微信通话
     private void StartMonitoring()
     {
-        Logger.LogMessage("开始监测通话录音。");
-        _stopMonitoring = false;
-
-        _monitoringTimer = new Timer(3000); // 3秒间隔
-        _monitoringTimer.Elapsed += OnMonitoringTimerElapsed;
-        _monitoringTimer.AutoReset = true;
-        _monitoringTimer.Start();
+        _logger.LogMessage("开始监测通话录音。");
+        _cancellationTokenSource = new CancellationTokenSource();
+        Task.Run(async () => await MonitorWeChatCallStatus(_cancellationTokenSource.Token));
     }
 
-    // 定时器回调函数
-    private void OnMonitoringTimerElapsed(object sender, ElapsedEventArgs e)
+    // 异步监控微信通话状态
+    private async Task MonitorWeChatCallStatus(CancellationToken cancellationToken)
     {
-        // 使用 Task.Run 来避免阻塞 UI 线程
-        Task.Run(() =>
+        while (!cancellationToken.IsCancellationRequested)
         {
-            if (WeChatCallDetector.IsWeChatCallActive())
-            {
-                if (!_recorder.IsRecording())
-                {
-                    Logger.LogMessage("检测到微信通话，开始录音。");
-                    _recorder.StartRecording();
-                }
-            }
-            else
-            {
-                if (_recorder.IsRecording())
-                {
-                    Logger.LogMessage("通话结束，停止录音并保存文件。");
-                    _recorder.StopRecording();
-                }
-            }
+            var isWeChatCallActive = await Task.Run(() => WeChatCallDetector.IsWeChatCallActive());
 
-            // 通知视图更新日志显示
-            Application.Current.Dispatcher.BeginInvoke(new Action(() => { OnPropertyChanged(nameof(LogsDisplay)); }));
-        });
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (isWeChatCallActive)
+                {
+                    if (!_recorder.IsRecording())
+                    {
+                        _logger.LogMessage("检测到微信通话，开始录音。");
+                        _recorder.StartRecording(RecordingSavePath);
+                    }
+                }
+                else
+                {
+                    if (_recorder.IsRecording())
+                    {
+                        _logger.LogMessage("通话结束，停止录音并保存文件。");
+                        _recorder.StopRecording();
+                    }
+                }
+            });
+
+            // 等待3秒再进行下一次检测
+            await Task.Delay(3000, cancellationToken);
+        }
     }
 }

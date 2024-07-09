@@ -13,6 +13,7 @@ public class Logger
 
     public void LogMessage(string message)
     {
-        _logs.Add(message);
+        var timestampedMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}";
+        _logs.Add(timestampedMessage);
     }
 }
