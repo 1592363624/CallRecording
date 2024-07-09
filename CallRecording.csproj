@@ -19,6 +19,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2"/>
         <PackageReference Include="FlaUI.UIA3" Version="4.0.0"/>
         <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3"/>
         <PackageReference Include="NAudio" Version="2.2.1"/>
@@ -28,6 +29,18 @@
         <EmbeddedResource Include="src\通用软件图片.ico">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="ViewModels\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Page Update="Views\MainWindow.xaml">
+            <Generator>MSBuild:Compile</Generator>
+            <XamlRuntime>Wpf</XamlRuntime>
+            <SubType>Designer</SubType>
+        </Page>
     </ItemGroup>
 
 </Project>
