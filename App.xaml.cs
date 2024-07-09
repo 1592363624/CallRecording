@@ -1,21 +1,20 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Windows;
+using Microsoft.Extensions.Configuration;
 
 namespace CallRecording;
 
 public partial class App : Application
 {
-    // protected override void OnStartup(StartupEventArgs e)
-    // {
-    //     base.OnStartup(e);
-    //
-    //     // 创建主视图模型
-    //     MainViewModel mainViewModel = new MainViewModel();
-    //     
-    //     // 设置主窗口的数据上下文，但不显示窗口
-    //     MainWindow mainWindow = new MainWindow
-    //     {
-    //         DataContext = mainViewModel
-    //     };
-    //     this.MainWindow = mainWindow;
-    // }
+    public IConfiguration Configuration { get; private set; }
+
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        var builder = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", false, true);
+        Configuration = builder.Build();
+    }
 }

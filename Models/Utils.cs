@@ -14,8 +14,9 @@ public static class Utils
         return Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
     }
 
-    public static string GenerateFilename()
+    public static string GenerateFilename(string savePath)
     {
-        return Path.Combine(GetDesktopPath(), $"{GetFormattedTime()}_微信通话录音.wav");
+        var filename = $"{GetFormattedTime()}_微信通话录音.wav";
+        return Path.Combine(savePath, filename);
     }
 }

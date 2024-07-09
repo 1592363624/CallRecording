@@ -23,7 +23,10 @@ public class Recorder
         {
             if (_isRecording) return;
 
-            _outputFileName = Path.Combine(savePath, Utils.GenerateFilename());
+            if (!Directory.Exists(savePath)) Directory.CreateDirectory(savePath);
+
+            // _outputFileName = Path.Combine(savePath, Utils.GenerateFilename());
+            _outputFileName = Utils.GenerateFilename(savePath);
             _waveSource = new WaveInEvent { WaveFormat = new WaveFormat(44100, 1) }; // 44100 Hz, Mono
             _waveSource.DataAvailable += OnDataAvailable;
             _waveSource.RecordingStopped += OnRecordingStopped;

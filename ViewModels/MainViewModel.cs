@@ -6,16 +6,19 @@ using CallRecording.Models;
 using CallRecording.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using Application = System.Windows.Application;
 
 namespace CallRecording.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    private CancellationTokenSource _cancellationTokenSource;
+    private readonly string _configFilePath;
     private readonly Logger _logger;
     private readonly NotifyIcon _notifyIcon;
     private readonly Recorder _recorder;
+    private CancellationTokenSource _cancellationTokenSource;
 
     [ObservableProperty] private string _recordingSavePath;
 
@@ -25,9 +28,29 @@ public partial class MainViewModel : ObservableObject
         _logger = new Logger(Logs);
         _recorder = new Recorder(_logger);
 
-        // 默认保存路径为用户的文档文件夹
-        RecordingSavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Recordings");
+        // 配置文件路径
+        _configFilePath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+
+        // 读取 appsettings.json 文件中的配置
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", false, true)
+            .Build();
+
+        // 获取保存路径配置并进行检查
+        var outputDirectory = configuration["OutputDirectory"];
+        if (string.IsNullOrEmpty(outputDirectory))
+            throw new ArgumentNullException(nameof(outputDirectory), "OutputDirectory 配置不能为空");
+
+        // 获取绝对路径
+        RecordingSavePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, outputDirectory));
+
+        // 检查目录是否存在，如果不存在则创建
+        if (!Directory.Exists(RecordingSavePath))
+        {
+            Directory.CreateDirectory(RecordingSavePath);
+            _logger.LogMessage($"录音文件保存路径不存在，已创建目录: {RecordingSavePath}");
+        }
 
         // 显示启动通知
         NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
@@ -53,8 +76,22 @@ public partial class MainViewModel : ObservableObject
             {
                 RecordingSavePath = dialog.SelectedPath;
                 _logger.LogMessage($"录音文件保存位置已设置为: {RecordingSavePath}");
+
+                // 更新配置文件
+                UpdateConfiguration("OutputDirectory", RecordingSavePath);
             }
         }
+    }
+
+    private void UpdateConfiguration(string key, string value)
+    {
+        var jsonConfig = File.ReadAllText(_configFilePath);
+        dynamic jsonObj = JsonConvert.DeserializeObject(jsonConfig);
+
+        jsonObj[key] = value;
+
+        string output = JsonConvert.SerializeObject(jsonObj, Formatting.Indented);
+        File.WriteAllText(_configFilePath, output);
     }
 
     // 清除日志命令
