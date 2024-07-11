@@ -1,170 +1,164 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using CallRecording.Models;
 using CallRecording.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using Application = System.Windows.Application;
 
-namespace CallRecording.ViewModels;
-
-public partial class MainViewModel : ObservableObject
+namespace CallRecording.ViewModels
 {
-    private readonly string _configFilePath;
-    private readonly Logger _logger;
-    private readonly NotifyIcon _notifyIcon;
-    private readonly Recorder _recorder;
-    private CancellationTokenSource _cancellationTokenSource;
-
-    [ObservableProperty] private string _recordingSavePath;
-
-    public MainViewModel()
+    public partial class MainViewModel : ObservableObject
     {
-        Logs = new ObservableCollection<string>();
-        _logger = new Logger(Logs);
-        _recorder = new Recorder(_logger);
+        private CancellationTokenSource _cancellationTokenSource;
+        private readonly Logger _logger;
+        private readonly NotifyIcon _notifyIcon;
+        private readonly Recorder _recorder;
+        private WindowMonitor _windowMonitor;
 
-        // 配置文件路径
-        _configFilePath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        [ObservableProperty] private string _recordingSavePath;
 
-        // 读取 appsettings.json 文件中的配置
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", false, true)
-            .Build();
-
-        // 获取保存路径配置并进行检查
-        var outputDirectory = configuration["OutputDirectory"];
-        if (string.IsNullOrEmpty(outputDirectory))
-            throw new ArgumentNullException(nameof(outputDirectory), "OutputDirectory 配置不能为空");
-
-        // 获取绝对路径
-        RecordingSavePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, outputDirectory));
-
-        // 检查目录是否存在，如果不存在则创建
-        if (!Directory.Exists(RecordingSavePath))
+        public MainViewModel()
         {
-            Directory.CreateDirectory(RecordingSavePath);
-            _logger.LogMessage($"录音文件保存路径不存在，已创建目录: {RecordingSavePath}");
+            Logs = new ObservableCollection<string>();
+            _logger = new Logger(Logs);
+            _recorder = new Recorder(_logger);
+
+            // 默认保存路径为软件的运行目录
+            RecordingSavePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recordings");
+
+            // 确保目录存在
+            if (!Directory.Exists(RecordingSavePath))
+            {
+                Directory.CreateDirectory(RecordingSavePath);
+            }
+
+            // 显示启动通知
+            NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
+
+            // 设置系统托盘图标
+            _notifyIcon = TrayIconService.SetupTrayIcon(_logger, ShowApp, ExitApp);
+
+            // 初始化窗口监控
+            InitializeWindowMonitor();
         }
 
-        // 显示启动通知
-        NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
+        public ObservableCollection<string> Logs { get; }
 
-        // 设置系统托盘图标
-        _notifyIcon = TrayIconService.SetupTrayIcon(_logger, ShowApp, ExitApp);
-
-        // 开始监控微信通话状态
-        StartMonitoring();
-    }
-
-    public ObservableCollection<string> Logs { get; }
-
-    // 选择保存路径命令
-    [RelayCommand]
-    private void ChooseSavePath()
-    {
-        using (var dialog = new FolderBrowserDialog())
+        // 选择保存路径命令
+        [RelayCommand]
+        private void ChooseSavePath()
         {
-            dialog.Description = "选择录音文件保存位置";
-            dialog.SelectedPath = RecordingSavePath;
-            if (dialog.ShowDialog() == DialogResult.OK)
+            using (var dialog = new FolderBrowserDialog())
             {
-                RecordingSavePath = dialog.SelectedPath;
-                _logger.LogMessage($"录音文件保存位置已设置为: {RecordingSavePath}");
-
-                // 更新配置文件
-                UpdateConfiguration("OutputDirectory", RecordingSavePath);
+                dialog.Description = "选择录音文件保存位置";
+                dialog.SelectedPath = RecordingSavePath;
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    RecordingSavePath = dialog.SelectedPath;
+                    _logger.LogMessage($"录音文件保存位置已设置为: {RecordingSavePath}", "设置");
+                }
             }
         }
-    }
 
-    private void UpdateConfiguration(string key, string value)
-    {
-        var jsonConfig = File.ReadAllText(_configFilePath);
-        dynamic jsonObj = JsonConvert.DeserializeObject(jsonConfig);
-
-        jsonObj[key] = value;
-
-        string output = JsonConvert.SerializeObject(jsonObj, Formatting.Indented);
-        File.WriteAllText(_configFilePath, output);
-    }
-
-    // 清除日志命令
-    [RelayCommand]
-    private void ClearLogs()
-    {
-        Application.Current.Dispatcher.Invoke(() =>
+        // 清除日志命令
+        [RelayCommand]
+        private void ClearLogs()
         {
-            Logs.Clear();
-            _logger.LogMessage("日志已清除。");
-        });
-    }
-
-    // 显示应用程序窗口
-    private void ShowApp(object sender, EventArgs e)
-    {
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            Application.Current.MainWindow?.Show();
-            Application.Current.MainWindow.WindowState = WindowState.Normal;
-            Application.Current.MainWindow.Activate();
-            _logger.LogMessage("应用程序窗口已显示。");
-        });
-    }
-
-    // 退出应用程序
-    public void ExitApp(object sender, EventArgs e)
-    {
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            _logger.LogMessage("退出应用程序。");
-            TrayIconService.CleanupTrayIcon(_notifyIcon);
-            Application.Current.Shutdown();
-        });
-    }
-
-    // 开始监控微信通话
-    private void StartMonitoring()
-    {
-        _logger.LogMessage("开始监测通话录音。");
-        _cancellationTokenSource = new CancellationTokenSource();
-        Task.Run(async () => await MonitorWeChatCallStatus(_cancellationTokenSource.Token));
-    }
-
-    // 异步监控微信通话状态
-    private async Task MonitorWeChatCallStatus(CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            var isWeChatCallActive = await Task.Run(() => WeChatCallDetector.IsWeChatCallActive());
-
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                if (isWeChatCallActive)
-                {
-                    if (!_recorder.IsRecording())
-                    {
-                        _logger.LogMessage("检测到微信通话，开始录音。");
-                        _recorder.StartRecording(RecordingSavePath);
-                    }
-                }
-                else
-                {
-                    if (_recorder.IsRecording())
-                    {
-                        _logger.LogMessage("通话结束，停止录音并保存文件。");
-                        _recorder.StopRecording();
-                    }
-                }
+                Logs.Clear();
+                _logger.LogMessage("日志已清除。", "设置");
             });
+        }
 
-            // 等待3秒再进行下一次检测
-            await Task.Delay(3000, cancellationToken);
+        // 显示应用程序窗口
+        private void ShowApp(object sender, EventArgs e)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Application.Current.MainWindow?.Show();
+                Application.Current.MainWindow.WindowState = WindowState.Normal;
+                Application.Current.MainWindow.Activate();
+                _logger.LogMessage("应用程序窗口已显示。", "系统");
+            });
+        }
+
+        // 退出应用程序
+        public void ExitApp(object sender, EventArgs e)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _logger.LogMessage("退出应用程序。", "系统");
+                TrayIconService.CleanupTrayIcon(_notifyIcon);
+                _windowMonitor.Dispose();
+                Application.Current.Shutdown();
+            });
+        }
+
+        // 初始化窗口监控
+        private void InitializeWindowMonitor()
+        {
+            //var targetClassNames = new List<string> { "AudioWnd", "语音通话" }; // 替换为实际的目标窗口类名
+            //var targetProcessNames = new List<string> { "WeChat", "Chrome_WidgetWin_1" }; // 替换为实际的目标进程名
+            var targetClassNames = new List<string> { "AudioWnd" }; // 替换为实际的目标窗口类名
+            var targetProcessNames = new List<string> { "WeChat" }; // 替换为实际的目标进程名
+
+
+            _windowMonitor = new WindowMonitor(targetClassNames, targetProcessNames);
+            _windowMonitor.WindowCreated += OnWindowCreated;
+            _windowMonitor.WindowDestroyed += OnWindowDestroyed;
+        }
+
+        // 窗口创建事件处理
+        private void OnWindowCreated(object sender, IntPtr hwnd)
+        {
+            StringBuilder className = new StringBuilder(256);
+            WindowMonitor.GetClassName(hwnd, className, className.Capacity);
+
+            WindowMonitor.GetWindowThreadProcessId(hwnd, out uint processId);
+            Process process = Process.GetProcessById((int)processId);
+            string processName = process.ProcessName;
+            string title = process.MainWindowTitle;
+
+            //_logger.LogMessage($"检测到新窗口: 标题: {title}, 类名: {className}, 句柄: {hwnd}", "系统");
+
+            // 处理新创建的窗口
+            //todo 这里要改一下,也许可以删掉
+            //if (title.Contains("语音通话") || title.Contains("微信通话"))
+            //{
+            _logger.LogMessage($"检测到通话窗口: {title}", "系统");
+            if (!_recorder.IsRecording())
+            {
+                _recorder.StartRecording(RecordingSavePath, "通话");
+            }
+            //}
+        }
+
+        // 窗口销毁事件处理
+        private void OnWindowDestroyed(object sender, IntPtr hwnd)
+        {
+            //_logger.LogMessage($"窗口销毁: 句柄: {hwnd}", "系统");
+
+            // 停止录音
+            StopRecording();
+        }
+
+        // 停止录音
+        public void StopRecording()
+        {
+            if (_recorder.IsRecording())
+            {
+                _logger.LogMessage("通话结束，停止录音并保存文件。", "系统");
+                _recorder.StopRecording();
+            }
         }
     }
 }

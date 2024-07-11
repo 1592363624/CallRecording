@@ -21,15 +21,20 @@ public partial class MainWindow : Window
             DataContext = mainViewModel;
             Hide();
         };
+
     }
 
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+    }
     private void MainWindow_Closing(object sender, CancelEventArgs e)
     {
         // 阻止窗口关闭并隐藏窗口
-        // e.Cancel = true;
-        // this.Hide();
+        e.Cancel = true;
+        this.Hide();
 
         // 结束应用程序
-        if (DataContext is MainViewModel viewModel) viewModel.ExitApp(this, null);
+        // if (DataContext is MainViewModel viewModel) viewModel.ExitApp(this, null);
     }
 }

@@ -42,7 +42,7 @@ public static class TrayIconService
         {
             if (stream == null)
             {
-                logger.LogMessage("无法加载图标资源。");
+                logger.LogMessage("无法加载图标资源。", "系统托盘图标");
                 return null;
             }
 
