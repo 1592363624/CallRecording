@@ -11,7 +11,9 @@ using CallRecording.Models;
 using CallRecording.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 using Application = System.Windows.Application;
+using MessageBox = System.Windows.MessageBox;
 
 namespace CallRecording.ViewModels
 {
@@ -79,6 +81,41 @@ namespace CallRecording.ViewModels
             });
         }
 
+        //开机自启命令
+        [RelayCommand]
+        private void Startup(bool isStartup)
+        {
+            string runKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+            string appName = "CallRecording";
+            string appPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(runKey, true))
+            {
+                if (key == null)
+                {
+                    MessageBox.Show("无法访问注册表。");
+                    return;
+                }
+
+                try
+                {
+                    if (isStartup)
+                    {
+                        key.SetValue(appName, appPath);
+                        MessageBox.Show("设置开机自启成功");
+                    }
+                    else
+                    {
+                        key.DeleteValue(appName, false);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"设置开机自启失败：{ex.Message}");
+                }
+            }
+        }
+
         // 显示应用程序窗口
         private void ShowApp(object sender, EventArgs e)
         {
@@ -87,7 +124,7 @@ namespace CallRecording.ViewModels
                 Application.Current.MainWindow?.Show();
                 Application.Current.MainWindow.WindowState = WindowState.Normal;
                 Application.Current.MainWindow.Activate();
-                _logger.LogMessage("应用程序窗口已显示。", "系统");
+                //_logger.LogMessage("应用程序窗口已显示。", "系统");
             });
         }
 
