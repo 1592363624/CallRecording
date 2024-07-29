@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using CallRecording.Models;
 
 namespace CallRecording.Services
 {
     public class WindowMonitor : IDisposable
     {
+        private readonly Logger _logger;
+
         // 定义WinEventProc回调函数委托
         private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
         private WinEventDelegate procDelegate;
@@ -58,20 +61,33 @@ namespace CallRecording.Services
             GetClassName(hwnd, className, className.Capacity);
 
             GetWindowThreadProcessId(hwnd, out uint processId);
-            Process process = Process.GetProcessById((int)processId);
-            string processName = process.ProcessName;
 
-            if (TargetClassNames.Contains(className.ToString()) && TargetProcessNames.Contains(processName))
+            try
             {
-                if (eventType == EVENT_OBJECT_CREATE)
+                Process process = Process.GetProcessById((int)processId);
+                string processName = process.ProcessName;
+                if (TargetClassNames.Contains(className.ToString()) && TargetProcessNames.Contains(processName))
                 {
-                    WindowCreated?.Invoke(this, hwnd);
-                }
-                else if (eventType == EVENT_OBJECT_DESTROY)
-                {
-                    WindowDestroyed?.Invoke(this, hwnd);
+                    if (eventType == EVENT_OBJECT_CREATE)
+                    {
+                        WindowCreated?.Invoke(this, hwnd);
+                    }
+                    else if (eventType == EVENT_OBJECT_DESTROY)
+                    {
+                        WindowDestroyed?.Invoke(this, hwnd);
+                    }
                 }
             }
+            catch (ArgumentException ex)
+            {
+                //_logger.LogMessage($"(警告)无法获取进程名: {ex.Message}", "系统");
+            }
+            catch (Exception ex)
+            {
+                //_logger.LogMessage($"(警告)未知错误: {ex.Message}", "系统");
+            }
+
+
         }
 
         public void Dispose()

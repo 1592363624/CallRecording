@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -12,8 +13,11 @@ using CallRecording.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using IWshRuntimeLibrary;
+using Newtonsoft.Json.Linq;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
+using CallRecording.Views;
 
 namespace CallRecording.ViewModels
 {
@@ -24,6 +28,9 @@ namespace CallRecording.ViewModels
         private readonly NotifyIcon _notifyIcon;
         private readonly Recorder _recorder;
         private WindowMonitor _windowMonitor;
+        //public bool isStartupEnabled;
+
+
 
         [ObservableProperty] private string _recordingSavePath;
 
@@ -45,11 +52,14 @@ namespace CallRecording.ViewModels
             // 显示启动通知
             NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
 
+
             // 设置系统托盘图标
             _notifyIcon = TrayIconService.SetupTrayIcon(_logger, ShowApp, ExitApp);
 
             // 初始化窗口监控
             InitializeWindowMonitor();
+
+
         }
 
         public ObservableCollection<string> Logs { get; }
@@ -65,6 +75,7 @@ namespace CallRecording.ViewModels
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     RecordingSavePath = dialog.SelectedPath;
+                    ConfigurationHelper.SetSetting("OutputDirectory", RecordingSavePath);
                     _logger.LogMessage($"录音文件保存位置已设置为: {RecordingSavePath}", "设置");
                 }
             }
@@ -83,38 +94,76 @@ namespace CallRecording.ViewModels
 
         //开机自启命令
         [RelayCommand]
-        private void Startup(bool isStartup)
+        private void Startup()
         {
-            string runKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
-            string appName = "CallRecording";
-            string appPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            bool.TryParse(ConfigurationHelper.GetSetting("是否开机自启"), out bool isStartupEnabled);
 
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(runKey, true))
+            isStartupEnabled = !isStartupEnabled;
+            ConfigurationHelper.SetSetting("是否开机自启", isStartupEnabled.ToString());
+
+            string startupFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+            string shortcutPath = Path.Combine(startupFolderPath, "CallRecording.lnk");
+            string appPath = Process.GetCurrentProcess().MainModule.FileName;
+
+            if (isStartupEnabled)
             {
-                if (key == null)
+                CreateShortcut(shortcutPath, appPath);
+                MessageBox.Show("设置开机自启成功");
+            }
+            else
+            {
+                if (System.IO.File.Exists(shortcutPath))
                 {
-                    MessageBox.Show("无法访问注册表。");
-                    return;
+                    System.IO.File.Delete(shortcutPath);
                 }
-
-                try
-                {
-                    if (isStartup)
-                    {
-                        key.SetValue(appName, appPath);
-                        MessageBox.Show("设置开机自启成功");
-                    }
-                    else
-                    {
-                        key.DeleteValue(appName, false);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"设置开机自启失败：{ex.Message}");
-                }
+                MessageBox.Show("取消开机自启成功");
             }
         }
+
+        private void CreateShortcut(string shortcutPath, string targetPath)
+        {
+            WshShell shell = new WshShell();
+            IWshShortcut shortcut = (IWshShortcut)shell.CreateShortcut(shortcutPath);
+            shortcut.Description = "CallRecording 开机自启";
+            shortcut.TargetPath = targetPath;
+            shortcut.WorkingDirectory = Path.GetDirectoryName(targetPath);
+            shortcut.Save();
+        }
+        //private void Startup()
+        //{
+        //    bool.TryParse(ConfigurationHelper.GetSetting("是否开机自启"), out CheckBox_IsChecked);
+        //    CheckBox_IsChecked = !CheckBox_IsChecked;
+        //    ConfigurationHelper.SetSetting("是否开机自启", CheckBox_IsChecked.ToString());
+        //    string runKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+        //    string appName = "CallRecording";
+        //    string appPath = Process.GetCurrentProcess().MainModule.FileName;
+
+        //    using (RegistryKey key = Registry.CurrentUser.OpenSubKey(runKey, true))
+        //    {
+        //        if (key == null)
+        //        {
+        //            MessageBox.Show("无法访问注册表。");
+        //            return;
+        //        }
+
+        //        try
+        //        {
+        //            if (CheckBox_IsChecked)
+        //            {
+        //                key.SetValue(appName, appPath);
+        //                MessageBox.Show("设置开机自启成功");
+        //            }
+        //            else
+        //            {
+        //                key.DeleteValue(appName, false);
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            MessageBox.Show($"设置开机自启失败：{ex.Message}");
+        //        }
+        //    }
+        //}
 
         // 显示应用程序窗口
         private void ShowApp(object sender, EventArgs e)
@@ -168,7 +217,6 @@ namespace CallRecording.ViewModels
             //_logger.LogMessage($"检测到新窗口: 标题: {title}, 类名: {className}, 句柄: {hwnd}", "系统");
 
             // 处理新创建的窗口
-            //todo 这里要改一下,也许可以删掉
             //if (title.Contains("语音通话") || title.Contains("微信通话"))
             //{
             _logger.LogMessage($"检测到通话窗口: {title}", "系统");

@@ -86,10 +86,10 @@
 
             <CheckBox
                 Margin="10,0,0,0"
+                x:Name="kjzq"
                 VerticalAlignment="Center"
                 Command="{Binding StartupCommand}"
-                Content="开机自启"
-                IsChecked="{Binding CheckBox_IsChecked}" />
+                Content="开机自启"/>
         </StackPanel>
     </Grid>
 </Window>

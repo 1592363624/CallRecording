@@ -19,7 +19,7 @@ namespace CallRecording.Models
         private WaveFileWriter _waveMicrophoneFile;
         private WasapiLoopbackCapture _loopbackSource;
         private WasapiCapture _microphoneSource;
-        private bool _isMixing = false; // 添加一个标志位
+        private bool _isMixing = false;
         public Recorder(Logger logger)
         {
             _logger = logger;

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Windows;
+using CallRecording.Models;
 using CallRecording.ViewModels;
 
 namespace CallRecording.Views;
@@ -20,6 +21,8 @@ public partial class MainWindow : Window
             // 设置主窗口的数据上下文
             DataContext = mainViewModel;
             Hide();
+            bool.TryParse(ConfigurationHelper.GetSetting("是否开机自启"), out bool isStartupEnabled);
+            kjzq.IsChecked = isStartupEnabled;
         };
 
     }

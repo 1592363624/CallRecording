@@ -15,7 +15,7 @@
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryType>GitHub</RepositoryType>
     <AssemblyVersion>1.0</AssemblyVersion>
-    <FileVersion>2.3</FileVersion>
+    <FileVersion>2.5</FileVersion>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
@@ -54,6 +54,18 @@
 
   <ItemGroup>
     <Compile Remove="Models\GlobalHook.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <COMReference Include="IWshRuntimeLibrary">
+      <WrapperTool>tlbimp</WrapperTool>
+      <VersionMinor>0</VersionMinor>
+      <VersionMajor>1</VersionMajor>
+      <Guid>f935dc20-1cf0-11d0-adb9-00c04fd58a0b</Guid>
+      <Lcid>0</Lcid>
+      <Isolated>false</Isolated>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </COMReference>
   </ItemGroup>
 
 </Project>
