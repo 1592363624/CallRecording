@@ -1,15 +1,23 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Http;
+using System.Security.Policy;
 using System.Windows;
 using CallRecording.Models;
 using CallRecording.ViewModels;
+using RestSharp;
 
 namespace CallRecording.Views;
 
 public partial class MainWindow : Window
 {
+    string msg = "";
     public MainWindow()
     {
         InitializeComponent();
+        CheckUpdate();
+
         WindowState = WindowState.Minimized;
 
         Closing += MainWindow_Closing;
@@ -25,6 +33,25 @@ public partial class MainWindow : Window
             kjzq.IsChecked = isStartupEnabled;
         };
 
+    }
+
+    private async Task CheckUpdate()
+    {
+        var client = new RestClient("https://gitee.com/Shell520/shell/raw/master/admin/通话录音助手");
+        var request = new RestRequest("", Method.Get);
+        RestResponse response = client.Execute<RestResponse>(request);
+        msg = response.Content;
+        if (msg != "2.6")
+        {
+            UpdateLog updateLogWindow = new UpdateLog();
+            updateLogWindow.Show();
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://wwf.lanzoue.com/b00g2fhjzg?pwd=1bxs#1bxs",
+                UseShellExecute = true
+            });
+
+        }
     }
 
     protected override void OnClosed(EventArgs e)

@@ -8,6 +8,7 @@
     Width="525"
     Height="350"
     Background="#F0F0F0"
+    WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
 
     <Window.Resources>

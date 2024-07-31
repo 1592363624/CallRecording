@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Windows;
 using NAudio.CoreAudioApi;
+using NAudio.Lame;
 using NAudio.Wave;
 
 namespace CallRecording.Models
@@ -20,6 +21,10 @@ namespace CallRecording.Models
         private WasapiLoopbackCapture _loopbackSource;
         private WasapiCapture _microphoneSource;
         private bool _isMixing = false;
+        private LameMP3FileWriter _mp3SpeakerFile;
+        private LameMP3FileWriter _mp3MicrophoneFile;
+        private WasapiLoopbackCapture _loopbackSource_mp3;
+        private WasapiCapture _microphoneSource_mp3;
         public Recorder(Logger logger)
         {
             _logger = logger;
@@ -60,7 +65,9 @@ namespace CallRecording.Models
                     Cleanup();
                 }
             }
+            Utils.通话监控次数add();
         }
+
 
         private void OnRecordingStopped(object sender, StoppedEventArgs e)
         {

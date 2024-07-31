@@ -58,8 +58,8 @@ namespace CallRecording.ViewModels
 
             // 初始化窗口监控
             InitializeWindowMonitor();
-
-
+            Utils.软件启动次数add();
+            _logger.LogMessage($"欢迎使用通话录音助手( ＾∀＾）／欢迎＼( ＾∀＾）", "通知");
         }
 
         public ObservableCollection<string> Logs { get; }
@@ -129,41 +129,6 @@ namespace CallRecording.ViewModels
             shortcut.WorkingDirectory = Path.GetDirectoryName(targetPath);
             shortcut.Save();
         }
-        //private void Startup()
-        //{
-        //    bool.TryParse(ConfigurationHelper.GetSetting("是否开机自启"), out CheckBox_IsChecked);
-        //    CheckBox_IsChecked = !CheckBox_IsChecked;
-        //    ConfigurationHelper.SetSetting("是否开机自启", CheckBox_IsChecked.ToString());
-        //    string runKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
-        //    string appName = "CallRecording";
-        //    string appPath = Process.GetCurrentProcess().MainModule.FileName;
-
-        //    using (RegistryKey key = Registry.CurrentUser.OpenSubKey(runKey, true))
-        //    {
-        //        if (key == null)
-        //        {
-        //            MessageBox.Show("无法访问注册表。");
-        //            return;
-        //        }
-
-        //        try
-        //        {
-        //            if (CheckBox_IsChecked)
-        //            {
-        //                key.SetValue(appName, appPath);
-        //                MessageBox.Show("设置开机自启成功");
-        //            }
-        //            else
-        //            {
-        //                key.DeleteValue(appName, false);
-        //            }
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            MessageBox.Show($"设置开机自启失败：{ex.Message}");
-        //        }
-        //    }
-        //}
 
         // 显示应用程序窗口
         private void ShowApp(object sender, EventArgs e)
@@ -192,10 +157,21 @@ namespace CallRecording.ViewModels
         // 初始化窗口监控
         private void InitializeWindowMonitor()
         {
+            var targetClassNames = new List<string> { "AudioWnd" };
+            var targetProcessNames = new List<string> { "WeChat" };
+
+            string cn = ConfigurationHelper.GetSetting("监控窗口类名");
+            string pn = ConfigurationHelper.GetSetting("监控窗口进程名");
+            //解析cn和pn成为list
+            if (!string.IsNullOrEmpty(cn) && !string.IsNullOrEmpty(pn))
+            {
+                targetClassNames = cn.Split('|').ToList();
+                targetProcessNames = pn.Split('|').ToList();
+            }
             //var targetClassNames = new List<string> { "AudioWnd", "语音通话" }; // 替换为实际的目标窗口类名
             //var targetProcessNames = new List<string> { "WeChat", "Chrome_WidgetWin_1" }; // 替换为实际的目标进程名
-            var targetClassNames = new List<string> { "AudioWnd" }; // 替换为实际的目标窗口类名
-            var targetProcessNames = new List<string> { "WeChat" }; // 替换为实际的目标进程名
+            // targetClassNames = new List<string> { "AudioWnd" }; // 替换为实际的目标窗口类名
+            // targetProcessNames = new List<string> { "WeChat" }; // 替换为实际的目标进程名
 
 
             _windowMonitor = new WindowMonitor(targetClassNames, targetProcessNames);
@@ -223,6 +199,7 @@ namespace CallRecording.ViewModels
             if (!_recorder.IsRecording())
             {
                 _recorder.StartRecording(RecordingSavePath, "通话");
+
             }
             //}
         }
