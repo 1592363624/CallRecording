@@ -91,6 +91,17 @@
                 VerticalAlignment="Center"
                 Command="{Binding StartupCommand}"
                 Content="开机自启"/>
+
+            <ComboBox ItemsSource="{Binding AudioFormats}"
+          SelectedItem="{Binding SelectedFormat}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}"/>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
         </StackPanel>
+
     </Grid>
 </Window>

@@ -1,44 +1,45 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.Configuration;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using CallRecording.Models;
-using CallRecording.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using IWshRuntimeLibrary;
-using Newtonsoft.Json.Linq;
+using CallRecording.Services;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
-using CallRecording.Views;
+using static CallRecording.Models.Recorder;
 
 namespace CallRecording.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private CancellationTokenSource _cancellationTokenSource;
         private readonly Logger _logger;
         private readonly NotifyIcon _notifyIcon;
         private readonly Recorder _recorder;
         private WindowMonitor _windowMonitor;
-        //public bool isStartupEnabled;
-
-
 
         [ObservableProperty] private string _recordingSavePath;
+        [ObservableProperty] public Recorder.AudioFormat _selectedFormat = Recorder.AudioFormat.MP3;
 
         public MainViewModel()
         {
             Logs = new ObservableCollection<string>();
             _logger = new Logger(Logs);
-            _recorder = new Recorder(_logger);
+
+            // 添加音频格式选项
+            AudioFormats = new List<Recorder.AudioFormat>
+        {
+            Recorder.AudioFormat.WAV,
+            Recorder.AudioFormat.MP3
+        };
 
             // 默认保存路径为软件的运行目录
             RecordingSavePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recordings");
@@ -52,7 +53,6 @@ namespace CallRecording.ViewModels
             // 显示启动通知
             NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
 
-
             // 设置系统托盘图标
             _notifyIcon = TrayIconService.SetupTrayIcon(_logger, ShowApp, ExitApp);
 
@@ -60,7 +60,12 @@ namespace CallRecording.ViewModels
             InitializeWindowMonitor();
             Utils.软件启动次数add();
             _logger.LogMessage($"欢迎使用通话录音助手( ＾∀＾）／欢迎＼( ＾∀＾）", "通知");
+
+            // 创建 Recorder 实例
+            _recorder = new Recorder(_logger, _selectedFormat);
         }
+
+        public List<Recorder.AudioFormat> AudioFormats { get; }
 
         public ObservableCollection<string> Logs { get; }
 
@@ -92,7 +97,7 @@ namespace CallRecording.ViewModels
             });
         }
 
-        //开机自启命令
+        // 开机自启命令
         [RelayCommand]
         private void Startup()
         {
@@ -162,17 +167,12 @@ namespace CallRecording.ViewModels
 
             string cn = ConfigurationHelper.GetSetting("监控窗口类名");
             string pn = ConfigurationHelper.GetSetting("监控窗口进程名");
-            //解析cn和pn成为list
+
             if (!string.IsNullOrEmpty(cn) && !string.IsNullOrEmpty(pn))
             {
                 targetClassNames = cn.Split('|').ToList();
                 targetProcessNames = pn.Split('|').ToList();
             }
-            //var targetClassNames = new List<string> { "AudioWnd", "语音通话" }; // 替换为实际的目标窗口类名
-            //var targetProcessNames = new List<string> { "WeChat", "Chrome_WidgetWin_1" }; // 替换为实际的目标进程名
-            // targetClassNames = new List<string> { "AudioWnd" }; // 替换为实际的目标窗口类名
-            // targetProcessNames = new List<string> { "WeChat" }; // 替换为实际的目标进程名
-
 
             _windowMonitor = new WindowMonitor(targetClassNames, targetProcessNames);
             _windowMonitor.WindowCreated += OnWindowCreated;
@@ -190,26 +190,16 @@ namespace CallRecording.ViewModels
             string processName = process.ProcessName;
             string title = process.MainWindowTitle;
 
-            //_logger.LogMessage($"检测到新窗口: 标题: {title}, 类名: {className}, 句柄: {hwnd}", "系统");
-
-            // 处理新创建的窗口
-            //if (title.Contains("语音通话") || title.Contains("微信通话"))
-            //{
             _logger.LogMessage($"检测到通话窗口: {title}", "系统");
             if (!_recorder.IsRecording())
             {
                 _recorder.StartRecording(RecordingSavePath, "通话");
-
             }
-            //}
         }
 
         // 窗口销毁事件处理
         private void OnWindowDestroyed(object sender, IntPtr hwnd)
         {
-            //_logger.LogMessage($"窗口销毁: 句柄: {hwnd}", "系统");
-
-            // 停止录音
             StopRecording();
         }
 

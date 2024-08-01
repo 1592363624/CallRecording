@@ -10,9 +10,9 @@ namespace CallRecording.Models
             return DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
         }
 
-        public static string GenerateFilename(string savePath, string softwareName)
+        public static string GenerateFilename(string savePath, string softwareName, string extension)
         {
-            return Path.Combine(savePath, $"{GetFormattedTime()}_{softwareName}_通话录音.wav");
+            return Path.Combine(savePath, $"{GetFormattedTime()}_{softwareName}_通话录音.{extension}");
         }
         /// <summary>
         /// 返回软件启动次数
