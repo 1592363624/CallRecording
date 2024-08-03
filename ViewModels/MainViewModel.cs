@@ -16,6 +16,7 @@ using CallRecording.Services;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using static CallRecording.Models.Recorder;
+using NAudio.Wave;
 
 namespace CallRecording.ViewModels
 {
@@ -210,6 +211,26 @@ namespace CallRecording.ViewModels
             {
                 _logger.LogMessage("通话结束，停止录音并保存文件。", "系统");
                 _recorder.StopRecording();
+            }
+        }
+
+        partial void OnSelectedFormatChanged(AudioFormat value)
+        {
+            bool isRecording = false;
+            if (_recorder.IsRecording())
+            {
+                _logger.LogMessage($"检测到正在录制,为更改音频格式即将停止录制,更改后自动继续录制", "设置更改");
+                isRecording = true;
+                _recorder.StopRecording();
+            }
+
+            _recorder.UpdateAudioFormat(value);
+            _logger.LogMessage($"所选录制音频格式已更改为: {value}", "设置更改");
+
+            if (isRecording)
+            {
+                _recorder.StartRecording(RecordingSavePath, "更改音频格式继续录制");
+                _logger.LogMessage($"更改音频格式完成,正在继续录制...", "设置更改");
             }
         }
     }

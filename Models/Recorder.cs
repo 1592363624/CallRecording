@@ -17,14 +17,14 @@ namespace CallRecording.Models
 
         private readonly object _lockObject = new();
         private readonly Logger _logger;
-        private readonly AudioFormat _selectedFormat;
+        private AudioFormat _selectedFormat;
         private bool _isRecording;
         private string _outputSpeakerFileName;
         private string _outputMicrophoneFileName;
         private string _outputMixedFileName;
         private WaveFileWriter _waveSpeakerFile;
         private WaveFileWriter _waveMicrophoneFile;
-        private WasapiLoopbackCapture _loopbackSource;
+        public WasapiLoopbackCapture _loopbackSource;
         private WasapiCapture _microphoneSource;
         private bool _isMixing = false;
         private LameMP3FileWriter _mp3SpeakerFile;
@@ -34,6 +34,10 @@ namespace CallRecording.Models
         {
             _logger = logger;
             _selectedFormat = selectedFormat;
+        }
+        public void UpdateAudioFormat(AudioFormat newFormat)
+        {
+            _selectedFormat = newFormat;
         }
 
         public void StartRecording(string savePath, string softwareName)
@@ -49,8 +53,8 @@ namespace CallRecording.Models
 
                 try
                 {
-                    _loopbackSource = new WasapiLoopbackCapture { WaveFormat = new WaveFormat(16000, 1) };
-                    _microphoneSource = new WasapiCapture { WaveFormat = new WaveFormat(16000, 1) };
+                    _loopbackSource = new WasapiLoopbackCapture { WaveFormat = new WaveFormat(48000, 2) };
+                    _microphoneSource = new WasapiCapture { WaveFormat = new WaveFormat(48000, 2) };
 
                     if (_selectedFormat == AudioFormat.WAV)
                     {
@@ -87,7 +91,7 @@ namespace CallRecording.Models
             Utils.通话监控次数add();
         }
 
-        private void OnRecordingStopped(object sender, StoppedEventArgs e)
+        public void OnRecordingStopped(object sender, StoppedEventArgs e)
         {
             lock (_lockObject)
             {
