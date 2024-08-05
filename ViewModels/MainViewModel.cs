@@ -216,22 +216,25 @@ namespace CallRecording.ViewModels
 
         partial void OnSelectedFormatChanged(AudioFormat value)
         {
-            bool isRecording = false;
             if (_recorder.IsRecording())
             {
-                _logger.LogMessage($"检测到正在录制,为更改音频格式即将停止录制,更改后自动继续录制", "设置更改");
-                isRecording = true;
-                _recorder.StopRecording();
+                MessageBoxResult result = MessageBox.Show("检测到正在录制,为更改音频格式需要停止录制,是否继续更换音频格式", "设置更改", MessageBoxButton.OKCancel);
+                if (result == MessageBoxResult.OK)
+                {
+                    StopRecording();
+                    _logger.LogMessage($"所选录制音频格式已更改为: {value}", "用户确认更改音频格式");
+
+                }
+                else if (result == MessageBoxResult.Cancel)
+                {
+                    _logger.LogMessage($"用户已取消更改所选录制音频格式", "用户取消更改音频格式");
+                }
+
             }
 
             _recorder.UpdateAudioFormat(value);
             _logger.LogMessage($"所选录制音频格式已更改为: {value}", "设置更改");
 
-            if (isRecording)
-            {
-                _recorder.StartRecording(RecordingSavePath, "更改音频格式继续录制");
-                _logger.LogMessage($"更改音频格式完成,正在继续录制...", "设置更改");
-            }
         }
     }
 }
