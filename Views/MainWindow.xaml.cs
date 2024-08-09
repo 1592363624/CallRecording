@@ -2,8 +2,11 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Security.Policy;
+using System.Text;
 using System.Windows;
+using System.Windows.Input;
 using CallRecording.Models;
 using CallRecording.ViewModels;
 using RestSharp;
@@ -12,6 +15,20 @@ namespace CallRecording.Views;
 
 public partial class MainWindow : Window
 {
+
+    // 获取窗口句柄
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(System.Drawing.Point p);
+
+    // 获取窗口类名
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+    // 获取窗口进程ID
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+
     string msg = "";
     public MainWindow()
     {
@@ -66,5 +83,56 @@ public partial class MainWindow : Window
 
         // 结束应用程序
         // if (DataContext is MainViewModel viewModel) viewModel.ExitApp(this, null);
+    }
+    private bool isDragging = false;
+
+    private void adm_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        isDragging = true;
+        Mouse.Capture(sender as UIElement);
+    }
+
+    private void adm_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (isDragging)
+        {
+            // 停止拖动
+            isDragging = false;
+            Mouse.Capture(null);
+
+            // 获取鼠标当前所在的窗口信息
+            CaptureWindowInfo();
+        }
+    }
+
+    private void CaptureWindowInfo()
+    {
+        // 获取当前鼠标位置
+        System.Drawing.Point screenPoint = System.Windows.Forms.Control.MousePosition;
+
+        // 获取窗口句柄
+        IntPtr hWnd = WindowFromPoint(screenPoint);
+
+        if (hWnd != IntPtr.Zero)
+        {
+            // 获取窗口类名
+            StringBuilder className = new StringBuilder(256);
+            GetClassName(hWnd, className, className.Capacity);
+
+            // 获取窗口所属的进程ID
+            GetWindowThreadProcessId(hWnd, out uint processId);
+            Process process = Process.GetProcessById((int)processId);
+
+            ConfigurationHelper.SetSetting("监控窗口类名", ConfigurationHelper.GetSetting("监控窗口类名") + "|" + className);
+            ConfigurationHelper.SetSetting("监控窗口进程名", ConfigurationHelper.GetSetting("监控窗口进程名") + "|" + process.ProcessName);
+        }
+    }
+
+    private void adm_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (isDragging && e.LeftButton == MouseButtonState.Pressed)
+        {
+            Debug.WriteLine("正在拖动...");
+        }
     }
 }

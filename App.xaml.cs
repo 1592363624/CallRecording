@@ -18,13 +18,15 @@ public partial class App : Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
-        GetSysInfo();
         base.OnStartup(e);
 
         var builder = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", false, true);
         Configuration = builder.Build();
+
+        //可以屏蔽这段正常运行
+        GetSysInfo();
 
         if (ConfigurationHelper.GetSetting("Is_Rge") != "Y")
         {
@@ -42,6 +44,8 @@ public partial class App : Application
                  Thread.Sleep(160000);
              }
          });
+        //可以屏蔽这段正常运行
+
     }
 
     private void GetSysInfo()

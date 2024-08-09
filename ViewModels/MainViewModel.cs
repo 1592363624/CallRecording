@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
 using CallRecording.Models;
@@ -17,6 +16,9 @@ using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using static CallRecording.Models.Recorder;
 using NAudio.Wave;
+using System.Runtime.InteropServices;
+using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace CallRecording.ViewModels
 {
@@ -97,6 +99,15 @@ namespace CallRecording.ViewModels
                 _logger.LogMessage("日志已清除。", "设置");
             });
         }
+
+        // 添加监控窗口命令
+        [RelayCommand]
+        private void AddMo()
+        {
+
+        }
+
+
 
         // 开机自启命令
         [RelayCommand]

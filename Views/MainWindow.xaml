@@ -82,15 +82,15 @@
             <Button Command="{Binding ChooseSavePathCommand}" Content="选择保存路径" />
             <!--  清除日志按钮  -->
             <Button Command="{Binding ClearLogsCommand}" Content="清除日志" />
-            <!--  开机自启复选框  -->
-            <!--  todo 完善开机自启功能  -->
+            <!--  添加监控窗口按钮  -->
+            <Button x:Name="adm" PreviewMouseMove="adm_MouseMove" PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown" PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp" Content="添加监控窗口" />
 
             <CheckBox
                 Margin="10,0,0,0"
                 x:Name="kjzq"
                 VerticalAlignment="Center"
                 Command="{Binding StartupCommand}"
-                Content="开机自启"/>
+                Content="开机自启  "/>
 
             <ComboBox ItemsSource="{Binding AudioFormats}"
           SelectedItem="{Binding SelectedFormat}">
