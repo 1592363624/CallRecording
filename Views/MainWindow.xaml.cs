@@ -41,7 +41,7 @@ public partial class MainWindow : Window
         var request = new RestRequest("", Method.Get);
         RestResponse response = client.Execute<RestResponse>(request);
         msg = response.Content;
-        if (msg != "2.6")
+        if (msg != "2.8")
         {
             UpdateLog updateLogWindow = new UpdateLog();
             updateLogWindow.Show();

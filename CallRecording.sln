@@ -5,6 +5,8 @@ VisualStudioVersion = 17.10.35013.160
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CallRecording", "CallRecording.csproj", "{061A84DA-1903-44ED-AA9D-EE820C5E00C1}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "MySharedProject", "..\MySharedProject\MySharedProject.shproj", "{98B9BE2D-0576-4F94-9376-6457999CBA5A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B5F6AAE9-1603-432E-BF1C-F78494D9E9D8}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		..\MySharedProject\MySharedProject.projitems*{061a84da-1903-44ed-aa9d-ee820c5e00c1}*SharedItemsImports = 5
+		..\MySharedProject\MySharedProject.projitems*{98b9be2d-0576-4f94-9376-6457999cba5a}*SharedItemsImports = 13
 	EndGlobalSection
 EndGlobal
