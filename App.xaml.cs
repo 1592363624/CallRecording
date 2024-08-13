@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using CallRecording.Models;
 using FlaUI.Core.Input;
+using MySharedProject.Model.Download;
 
 namespace CallRecording;
 
@@ -25,27 +26,18 @@ public partial class App : Application
             .AddJsonFile("appsettings.json", false, true);
         Configuration = builder.Build();
 
-        //可以屏蔽这段正常运行
+        //可以屏蔽这段正常运行 因为是用的共享项目的代码
+
         GetSysInfo();
 
-        if (ConfigurationHelper.GetSetting("Is_Rge") != "Y")
+        if (ConfigurationHelper.GetSetting("Is_Rge") != "YY")
         {
             await loadConfiguration();
         }
 
         Login();
-        //懒得写心跳了
-        await Task.Run(() =>
-         {
-             //Thread.Sleep(160000);
-             while (true)
-             {
-                 string msg = MySharedProject.Model.MyAuth.Heart.SoftHeart(reftoken);
-                 Thread.Sleep(160000);
-             }
-         });
-        //可以屏蔽这段正常运行
 
+        //可以屏蔽这段正常运行 因为是用的共享项目的代码
     }
 
     private void GetSysInfo()
@@ -55,10 +47,41 @@ public partial class App : Application
         DataSource.Device_code = ConfigurationHelper.GetSetting("Device_code");
     }
 
-    private void Login()
+
+    private async void Login()
     {
-        string msg = MySharedProject.Model.MyAuth.Login.SoftLogin(DataSource.Device_code, DataSource.Device_code, null, ref reftoken);
+
+        string msg = MySharedProject.Model.MyAuth.Login.SoftLogin(ConfigurationHelper.GetSetting("User"), null, null, ref reftoken);
         Debug.WriteLine(msg);
+
+        if (msg == "登录成功")
+        {
+            //心跳
+            await Task.Run(() =>
+            {
+                //Thread.Sleep(160000);
+                while (true)
+                {
+                    string msg = MySharedProject.Model.MyAuth.Heart.SoftHeart(reftoken);
+                    Thread.Sleep(160000);
+                }
+            });
+        }
+        else if (msg == "账号不存在")
+        {
+            await loadConfiguration();
+            Login();
+            //心跳
+            await Task.Run(() =>
+            {
+                //Thread.Sleep(160000);
+                while (true)
+                {
+                    string msg = MySharedProject.Model.MyAuth.Heart.SoftHeart(reftoken);
+                    Thread.Sleep(160000);
+                }
+            });
+        }
     }
 
 
@@ -92,12 +115,15 @@ public partial class App : Application
             Debug.WriteLine(ex.Message);
         }
 
-        string msg = MySharedProject.Model.MyAuth.Register.SoftRegister(DataSource.Device_code);
+        string user = DataSource.ComputerUserName + Api.GetCurrentTimestamp();
+        ConfigurationHelper.SetSetting("User", user);
+
+        string msg = MySharedProject.Model.MyAuth.Register.SoftRegister(user);
         Debug.WriteLine(msg);
 
         if (msg == "注册成功")
         {
-            ConfigurationHelper.SetSetting("Is_Rge", "Y");
+            ConfigurationHelper.SetSetting("Is_Rge", "YY");
         }
 
     }

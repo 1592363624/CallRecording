@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="通话录音助手"
-    Width="525"
+    Width="550"
     Height="350"
     Background="#F0F0F0"
     WindowStartupLocation="CenterScreen"
@@ -83,7 +83,9 @@
             <!--  清除日志按钮  -->
             <Button Command="{Binding ClearLogsCommand}" Content="清除日志" />
             <!--  添加监控窗口按钮  -->
-            <Button x:Name="adm" PreviewMouseMove="adm_MouseMove" PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown" PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp" Content="添加监控窗口" />
+            <Button x:Name="adm" 
+                ToolTip="长按并拖动鼠标到其他窗口上自动添加目标窗口监控"
+                    PreviewMouseMove="adm_MouseMove" PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown" PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp" Content="添加监控窗口" />
 
             <CheckBox
                 Margin="10,0,0,0"
@@ -91,6 +93,14 @@
                 VerticalAlignment="Center"
                 Command="{Binding StartupCommand}"
                 Content="开机自启  "/>
+
+            <CheckBox
+                Margin="10,0,0,0"
+                x:Name="ysms"
+                VerticalAlignment="Center"
+                Command="{Binding StealthCommand}"
+                ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。"
+                Content="隐身模式  "/>
 
             <ComboBox ItemsSource="{Binding AudioFormats}"
           SelectedItem="{Binding SelectedFormat}">

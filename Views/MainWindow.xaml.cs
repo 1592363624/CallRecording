@@ -47,7 +47,9 @@ public partial class MainWindow : Window
             DataContext = mainViewModel;
             Hide();
             bool.TryParse(ConfigurationHelper.GetSetting("是否开机自启"), out bool isStartupEnabled);
+            bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
             kjzq.IsChecked = isStartupEnabled;
+            ysms.IsChecked = isStealth;
         };
 
     }
@@ -57,8 +59,9 @@ public partial class MainWindow : Window
         var client = new RestClient("https://gitee.com/Shell520/shell/raw/master/admin/通话录音助手");
         var request = new RestRequest("", Method.Get);
         RestResponse response = client.Execute<RestResponse>(request);
-        msg = response.Content;
-        if (msg != "2.8")
+        string? latestVersion = response.Content;
+        string currentVersion = "2.9";
+        if (latestVersion != currentVersion)
         {
             UpdateLog updateLogWindow = new UpdateLog();
             updateLogWindow.Show();

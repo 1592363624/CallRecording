@@ -25,7 +25,7 @@ namespace CallRecording.ViewModels
     public partial class MainViewModel : ObservableObject
     {
         private readonly Logger _logger;
-        private readonly NotifyIcon _notifyIcon;
+        private NotifyIcon _notifyIcon;
         private readonly Recorder _recorder;
         private WindowMonitor _windowMonitor;
 
@@ -57,7 +57,8 @@ namespace CallRecording.ViewModels
             NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
 
             // 设置系统托盘图标
-            _notifyIcon = TrayIconService.SetupTrayIcon(_logger, ShowApp, ExitApp);
+            bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
+            _notifyIcon = TrayIconService.SetupTrayIcon(_logger, !isStealth, ShowApp, ExitApp);
 
             // 初始化窗口监控
             InitializeWindowMonitor();
@@ -134,6 +135,25 @@ namespace CallRecording.ViewModels
                     System.IO.File.Delete(shortcutPath);
                 }
                 MessageBox.Show("取消开机自启成功");
+            }
+        }
+
+        // 隐身模式命令
+        [RelayCommand]
+        private void Stealth()
+        {
+            bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
+
+            isStealth = !isStealth;
+            ConfigurationHelper.SetSetting("是否隐身模式启动", isStealth.ToString());
+
+            if (isStealth)
+            {
+                MessageBox.Show("设置隐身模式启动成功,重启软件即可完全隐藏软件,不会显示系统托盘图标");
+            }
+            else
+            {
+                MessageBox.Show("取消隐身模式启动成功,下次启动将会显示系统托盘图标");
             }
         }
 
