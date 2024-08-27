@@ -67,9 +67,11 @@
         <!--  绑定日志到 ListBox  -->
         <ListBox
             Margin="10"
+            x:Name="ListBox_rz"
             Background="White"
             BorderBrush="#CCCCCC"
             BorderThickness="1"
+            MouseDoubleClick="ListBox_rz_MouseDoubleClick"
             ItemsSource="{Binding Logs}" />
 
         <StackPanel

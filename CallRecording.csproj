@@ -34,7 +34,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="src\通用软件图片.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
 
@@ -44,12 +44,6 @@
       <XamlRuntime>Wpf</XamlRuntime>
       <SubType>Designer</SubType>
     </Page>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -66,6 +60,12 @@
       <Isolated>false</Isolated>
       <EmbedInteropTypes>true</EmbedInteropTypes>
     </COMReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <Import Project="..\MySharedProject\MySharedProject.projitems" Label="Shared" />

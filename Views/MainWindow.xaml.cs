@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Input;
 using CallRecording.Models;
 using CallRecording.ViewModels;
+using MySharedProject.Utiles;
 using RestSharp;
 
 namespace CallRecording.Views;
@@ -136,6 +137,18 @@ public partial class MainWindow : Window
         if (isDragging && e.LeftButton == MouseButtonState.Pressed)
         {
             Debug.WriteLine("正在拖动...");
+        }
+    }
+
+
+    private void ListBox_rz_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        // 获取当前选中的项
+        var selectedItem = ListBox_rz.SelectedItem as string;
+        if (selectedItem != null)
+        {
+            //打开文件夹
+            Process.Start("explorer.exe", FileUtil.当前文件目录 + "Recordings");
         }
     }
 }
