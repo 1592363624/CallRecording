@@ -19,6 +19,9 @@ using NAudio.Wave;
 using System.Runtime.InteropServices;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Timer = System.Windows.Forms.Timer;
+using System.Drawing;
+using System.Reflection;
 
 namespace CallRecording.ViewModels
 {
@@ -28,6 +31,11 @@ namespace CallRecording.ViewModels
         private NotifyIcon _notifyIcon;
         private readonly Recorder _recorder;
         private WindowMonitor _windowMonitor;
+        private Timer _iconBlinkTimer;
+        private Icon _defaultIcon;
+        private Icon _recordingIcon;
+        private bool _isDefaultIcon = true;
+
 
         [ObservableProperty] private string _recordingSavePath;
         [ObservableProperty] public Recorder.AudioFormat _selectedFormat = Recorder.AudioFormat.MP3;
@@ -58,7 +66,21 @@ namespace CallRecording.ViewModels
 
             // 设置系统托盘图标
             bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
+
             _notifyIcon = TrayIconService.SetupTrayIcon(_logger, !isStealth, ShowApp, ExitApp);
+
+            // 初始化托盘图标
+            _defaultIcon = _notifyIcon.Icon; // 假设初始图标已经在_setupTrayIcon中设置
+            var assembly = Assembly.GetExecutingAssembly();
+            _recordingIcon = new Icon(assembly.GetManifestResourceStream("CallRecording.src.通用软件图片闪动.ico")); // 替换成你的录音中图标路径
+
+            // 初始化定时器，间隔500毫秒（闪烁频率）
+            _iconBlinkTimer = new Timer
+            {
+                Interval = 500 // 500毫秒切换一次图标
+            };
+            _iconBlinkTimer.Tick += IconBlinkTimer_Tick;
+            //_iconBlinkTimer.Start();
 
             // 初始化窗口监控
             InitializeWindowMonitor();
@@ -67,6 +89,19 @@ namespace CallRecording.ViewModels
 
             // 创建 Recorder 实例
             _recorder = new Recorder(_logger, _selectedFormat);
+        }
+
+        private void IconBlinkTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_isDefaultIcon)
+            {
+                _notifyIcon.Icon = _recordingIcon;
+            }
+            else
+            {
+                _notifyIcon.Icon = _defaultIcon;
+            }
+            _isDefaultIcon = !_isDefaultIcon;
         }
 
         public List<Recorder.AudioFormat> AudioFormats { get; }
@@ -226,6 +261,7 @@ namespace CallRecording.ViewModels
             if (!_recorder.IsRecording())
             {
                 _recorder.StartRecording(RecordingSavePath, "通话");
+                _iconBlinkTimer.Start();//通话录音的时候图标闪烁
             }
         }
 
@@ -242,6 +278,8 @@ namespace CallRecording.ViewModels
             {
                 _logger.LogMessage("通话结束，停止录音并保存文件。", "系统");
                 _recorder.StopRecording();
+                _iconBlinkTimer.Stop(); // 停止图标闪烁
+                _notifyIcon.Icon = _defaultIcon; // 恢复为默认图标
             }
         }
 

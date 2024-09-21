@@ -36,6 +36,7 @@
     <EmbeddedResource Include="src\通用软件图片.ico">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="src\通用软件图片闪动.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,6 +49,10 @@
 
   <ItemGroup>
     <Compile Remove="Models\GlobalHook.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="src\通用软件图片闪动.ico" />
   </ItemGroup>
 
   <ItemGroup>
