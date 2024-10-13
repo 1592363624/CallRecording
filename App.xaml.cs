@@ -9,9 +9,14 @@ using System.Diagnostics;
 using CallRecording.Models;
 using FlaUI.Core.Input;
 using MySharedProject.Model.Download;
+using System.Drawing;
+using CallRecording.Views;
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using System.Windows.Media;
 
 namespace CallRecording;
-
+[ObservableObject]
 public partial class App : Application
 {
     public IConfiguration Configuration { get; private set; }
@@ -46,6 +51,15 @@ public partial class App : Application
         DataSource.Device_info = ConfigurationHelper.GetSetting("Device_info");
         DataSource.Device_code = ConfigurationHelper.GetSetting("Device_code");
     }
+    // 在线状态颜色
+    [ObservableProperty]
+    private System.Windows.Media.Brush onlineStatusColor = System.Windows.Media.Brushes.Red;
+    [ObservableProperty]
+    private string onlineStatusToolTip = "离线";
+    [ObservableProperty]
+    private string directorySize = "获取失败";
+    [ObservableProperty]
+    private string diskUsage = "获取失败";
 
 
     private async void Login()
@@ -63,6 +77,17 @@ public partial class App : Application
                 while (true)
                 {
                     string msg = MySharedProject.Model.MyAuth.Heart.SoftHeart(reftoken);
+                    if (msg == "心跳成功")
+                    {
+                        OnlineStatusColor = System.Windows.Media.Brushes.Green;
+                        OnlineStatusToolTip = "运行正常";
+                    }
+                    else
+                    {
+                        OnlineStatusColor = System.Windows.Media.Brushes.Red;
+                        OnlineStatusToolTip = "离线";
+
+                    }
                     Thread.Sleep(160000);
                 }
             });

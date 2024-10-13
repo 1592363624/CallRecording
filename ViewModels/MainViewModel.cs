@@ -35,6 +35,14 @@ namespace CallRecording.ViewModels
         private Icon _defaultIcon;
         private Icon _recordingIcon;
         private bool _isDefaultIcon = true;
+        [ObservableProperty]
+        public string totalSize;
+        [ObservableProperty]
+        public string availableFreeSpace;
+        [ObservableProperty]
+        public string usedSpace;
+        [ObservableProperty]
+        public string iusedSpace;
 
 
         [ObservableProperty] private string _recordingSavePath;
@@ -53,11 +61,13 @@ namespace CallRecording.ViewModels
         };
 
             // 默认保存路径为软件的运行目录
-            RecordingSavePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recordings");
+            //RecordingSavePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recordings");
+            RecordingSavePath = AppDomain.CurrentDomain.BaseDirectory + "Recordings";
             // 确保目录存在
             if (!Directory.Exists(RecordingSavePath))
             {
                 Directory.CreateDirectory(RecordingSavePath);
+                ConfigurationHelper.SetSetting("OutputDirectory", RecordingSavePath);
             }
             //读取更改的保存路径
             RecordingSavePath = ConfigurationHelper.GetSetting("OutputDirectory");
@@ -90,6 +100,19 @@ namespace CallRecording.ViewModels
 
             // 创建 Recorder 实例
             _recorder = new Recorder(_logger, _selectedFormat);
+
+            //读取磁盘占用相关信息
+            Task.Run(() =>
+            {
+                var path = ConfigurationHelper.GetSetting("OutputDirectory");
+                var DiskInfoIn = Utils.GetDiskInfoInMB(path);
+
+
+                TotalSize = "磁盘总空间: " + Utils.FormatSize(DiskInfoIn.总大小);
+                AvailableFreeSpace = "磁盘可用空间: " + Utils.FormatSize(DiskInfoIn.可用空间);
+                UsedSpace = "磁盘已用空间: " + Utils.FormatSize(DiskInfoIn.已用空间);
+                IusedSpace = "录音文件占用空间: " + Utils.FormatSize(Utils.GetFolderSize(path));
+            });
         }
 
         private void IconBlinkTimer_Tick(object? sender, EventArgs e)
@@ -261,7 +284,7 @@ namespace CallRecording.ViewModels
             _logger.LogMessage($"检测到通话窗口: {title}", "系统");
             if (!_recorder.IsRecording())
             {
-                _recorder.StartRecording(RecordingSavePath, "通话");
+                _recorder.StartRecording(RecordingSavePath, "通话");//开始录音
                 _iconBlinkTimer.Start();//通话录音的时候图标闪烁
             }
         }
@@ -277,10 +300,22 @@ namespace CallRecording.ViewModels
         {
             if (_recorder.IsRecording())
             {
-                _logger.LogMessage("通话结束，停止录音并保存文件。", "系统");
+                _logger.LogMessage("通话结束，停止录音并保存文件。", "系统");//停止录音
                 _recorder.StopRecording();
                 _iconBlinkTimer.Stop(); // 停止图标闪烁
                 _notifyIcon.Icon = _defaultIcon; // 恢复为默认图标
+
+                Task.Run(() =>
+                {
+                    var path = AppDomain.CurrentDomain.BaseDirectory + ConfigurationHelper.GetSetting("OutputDirectory");
+                    var DiskInfoIn = Utils.GetDiskInfoInMB(path);
+
+
+                    TotalSize = Utils.FormatSize(DiskInfoIn.总大小);
+                    AvailableFreeSpace = Utils.FormatSize(DiskInfoIn.可用空间);
+                    UsedSpace = Utils.FormatSize(DiskInfoIn.已用空间);
+                    IusedSpace = Utils.FormatSize(Utils.GetFolderSize(path));
+                });
             }
         }
 

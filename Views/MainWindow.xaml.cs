@@ -49,8 +49,13 @@ public partial class MainWindow : Window
         {
             // 创建主视图模型
             var mainViewModel = new MainViewModel();
+            var app = App.Current;
             // 设置主窗口的数据上下文
+            Bottom_information_bar.DataContext = app;
+            Diskoccupancyinformation.DataContext = mainViewModel;
             DataContext = mainViewModel;
+
+
             Hide();
             bool.TryParse(ConfigurationHelper.GetSetting("是否开机自启"), out bool isStartupEnabled);
             bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);

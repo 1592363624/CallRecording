@@ -73,10 +73,8 @@
             ItemsSource="{Binding Logs}"
             MouseDoubleClick="ListBox_rz_MouseDoubleClick" />
 
-        <!--底部信息栏-->
-        <Grid Grid.Row="1">
-            <TextBlock>123</TextBlock>
-        </Grid>
+        <!--  底部信息栏  -->
+        <Grid Grid.Row="1" />
 
 
 
@@ -84,10 +82,36 @@
         <Expander
             Grid.Row="2"
             Margin="10,5,10,5"
-            Header="展开更多配置"
-            IsExpanded="False">
+            Header="系统配置信息"
+            IsExpanded="True">
             <StackPanel>
                 <TabControl>
+                    <TabItem Header="信息栏">
+                        <Grid x:Name="Bottom_information_bar">
+                            <!--  在线状态标识  -->
+                            <Ellipse
+                                x:Name="Onlineidentification"
+                                Width="15"
+                                Height="15"
+                                Margin="0,0,0,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Fill="{Binding OnlineStatusColor}"
+                                ToolTip="{Binding OnlineStatusToolTip}" />
+
+                            <!--  文件大小和磁盘占比信息  -->
+                            <StackPanel
+                                x:Name="Diskoccupancyinformation"
+                                Grid.Row="1"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center">
+                                <TextBlock Margin="1" Text="{Binding TotalSize}" />
+                                <TextBlock Margin="1" Text="{Binding AvailableFreeSpace}" />
+                                <TextBlock Margin="1" Text="{Binding UsedSpace}" />
+                                <TextBlock Margin="1" Text="{Binding IusedSpace}" />
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
                     <TabItem Header="系统配置">
                         <StackPanel
                             Grid.Row="1"

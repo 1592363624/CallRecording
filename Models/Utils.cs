@@ -34,5 +34,69 @@ namespace CallRecording.Models
             ConfigurationHelper.SetSetting("监控通话次数", recCount.ToString());
             return recCount;
         }
+
+        public static (long 总大小, long 已用空间, long 可用空间) GetDiskInfoInMB(string path)
+        {
+            DriveInfo driveInfo = new DriveInfo(Path.GetPathRoot(path));
+
+            if (driveInfo.IsReady)
+            {
+                long totalSizeMB = driveInfo.TotalSize;
+                long availableFreeSpaceMB = driveInfo.AvailableFreeSpace;
+                long usedSpaceMB = totalSizeMB - availableFreeSpaceMB;
+
+
+                return (totalSizeMB, availableFreeSpaceMB, usedSpaceMB);
+            }
+            else
+            {
+                return (0, 0, 0);  // 返回默认值
+            }
+        }
+
+        public static long GetFolderSize(string folderPath)
+        {
+            long folderSize = 0;
+
+            // 获取文件夹中的所有文件
+            try
+            {
+                DirectoryInfo dirInfo = new DirectoryInfo(folderPath);
+
+                // 累计当前文件夹的文件大小
+                foreach (FileInfo file in dirInfo.GetFiles())
+                {
+                    folderSize += file.Length;
+                }
+
+                // 递归获取子文件夹中的文件大小
+                foreach (DirectoryInfo subDir in dirInfo.GetDirectories())
+                {
+                    folderSize += GetFolderSize(subDir.FullName);  // 递归调用
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"获取文件夹大小时出错: {ex.Message}");
+            }
+
+            return folderSize;
+        }
+
+        public static string FormatSize(long sizeInBytes)
+        {
+            // 将字节大小转换为合适的单位（KB, MB, GB等）
+            double size = sizeInBytes;
+            string[] sizeUnits = { "Bytes", "KB", "MB", "GB", "TB" };
+            int unitIndex = 0;
+
+            while (size >= 1024 && unitIndex < sizeUnits.Length - 1)
+            {
+                size /= 1024;
+                unitIndex++;
+            }
+
+            return $"{size:F2} {sizeUnits[unitIndex]}";
+        }
     }
 }
