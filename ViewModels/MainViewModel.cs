@@ -54,12 +54,13 @@ namespace CallRecording.ViewModels
 
             // 默认保存路径为软件的运行目录
             RecordingSavePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recordings");
-
             // 确保目录存在
             if (!Directory.Exists(RecordingSavePath))
             {
                 Directory.CreateDirectory(RecordingSavePath);
             }
+            //读取更改的保存路径
+            RecordingSavePath = ConfigurationHelper.GetSetting("OutputDirectory");
 
             // 显示启动通知
             NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");

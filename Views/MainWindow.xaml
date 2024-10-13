@@ -5,14 +5,13 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="通话录音助手"
-    Width="550"
-    Height="350"
+    Width="600"
+    Height="450"
     Background="#F0F0F0"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
 
     <Window.Resources>
-        <!--  定义按钮样式  -->
         <Style TargetType="Button">
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Padding" Value="10,5" />
@@ -62,58 +61,83 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--  绑定日志到 ListBox  -->
         <ListBox
-            Margin="10"
             x:Name="ListBox_rz"
+            Margin="10"
             Background="White"
             BorderBrush="#CCCCCC"
             BorderThickness="1"
-            MouseDoubleClick="ListBox_rz_MouseDoubleClick"
-            ItemsSource="{Binding Logs}" />
+            ItemsSource="{Binding Logs}"
+            MouseDoubleClick="ListBox_rz_MouseDoubleClick" />
 
-        <StackPanel
-            Grid.Row="1"
-            Margin="10"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Bottom"
-            Orientation="Horizontal">
-            <!--  选择保存路径按钮  -->
-            <Button Command="{Binding ChooseSavePathCommand}" Content="选择保存路径" />
-            <!--  清除日志按钮  -->
-            <Button Command="{Binding ClearLogsCommand}" Content="清除日志" />
-            <!--  添加监控窗口按钮  -->
-            <Button x:Name="adm" 
-                ToolTip="长按并拖动鼠标到其他窗口上自动添加目标窗口监控"
-                    PreviewMouseMove="adm_MouseMove" PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown" PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp" Content="添加监控窗口" />
+        <!--底部信息栏-->
+        <Grid Grid.Row="1">
+            <TextBlock>123</TextBlock>
+        </Grid>
 
-            <CheckBox
-                Margin="10,0,0,0"
-                x:Name="kjzq"
-                VerticalAlignment="Center"
-                Command="{Binding StartupCommand}"
-                Content="开机自启  "/>
 
-            <CheckBox
-                Margin="10,0,0,0"
-                x:Name="ysms"
-                VerticalAlignment="Center"
-                Command="{Binding StealthCommand}"
-                ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。"
-                Content="隐身模式  "/>
 
-            <ComboBox ItemsSource="{Binding AudioFormats}"
-          SelectedItem="{Binding SelectedFormat}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+        <!--  新增扩展区域  -->
+        <Expander
+            Grid.Row="2"
+            Margin="10,5,10,5"
+            Header="展开更多配置"
+            IsExpanded="False">
+            <StackPanel>
+                <TabControl>
+                    <TabItem Header="系统配置">
+                        <StackPanel
+                            Grid.Row="1"
+                            Margin="10"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom"
+                            Orientation="Horizontal">
+                            <Button Command="{Binding ChooseSavePathCommand}" Content="选择保存路径" />
+                            <Button Command="{Binding ClearLogsCommand}" Content="清除日志" />
+                            <Button
+                                x:Name="adm"
+                                Content="添加监控窗口"
+                                PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown"
+                                PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp"
+                                PreviewMouseMove="adm_MouseMove"
+                                ToolTip="长按并拖动鼠标到其他窗口上自动添加目标窗口监控" />
 
-        </StackPanel>
+                            <CheckBox
+                                x:Name="kjzq"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                Command="{Binding StartupCommand}"
+                                Content="开机自启  " />
 
+                            <CheckBox
+                                x:Name="ysms"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                Command="{Binding StealthCommand}"
+                                Content="隐身模式  "
+                                ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。" />
+
+                            <ComboBox
+                                ItemsSource="{Binding AudioFormats}"
+                                SelectedItem="{Binding SelectedFormat}"
+                                ToolTip="MP3格式文件小(不过录制音频效果也已经优化的其实还不错),WAV格式无损音频(文件大)">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                    </TabItem>
+
+                    <TabItem Header="系统公告">
+                        <TextBlock x:Name="text_updateLog" Text="因为不强制显示更新公告了,就在这里预留个公告位置吧" />
+                    </TabItem>
+                </TabControl>
+            </StackPanel>
+        </Expander>
     </Grid>
 </Window>

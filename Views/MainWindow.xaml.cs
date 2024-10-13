@@ -6,9 +6,13 @@ using System.Runtime.InteropServices;
 using System.Security.Policy;
 using System.Text;
 using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Input;
 using CallRecording.Models;
+using CallRecording.Services;
 using CallRecording.ViewModels;
+using Microsoft.Toolkit.Uwp.Notifications;
+using MySharedProject.Model.MyAuth;
 using MySharedProject.Utiles;
 using RestSharp;
 
@@ -31,6 +35,7 @@ public partial class MainWindow : Window
 
 
     string msg = "";
+    bool 是否点击通知更新的确认按钮 = false;
     public MainWindow()
     {
         InitializeComponent();
@@ -52,25 +57,52 @@ public partial class MainWindow : Window
             kjzq.IsChecked = isStartupEnabled;
             ysms.IsChecked = isStealth;
         };
+        //订阅通知按钮事件
+        ToastNotificationManagerCompat.OnActivated += toastArgs =>
+        {
+            // 解析传递的参数
+            var args = ToastArguments.Parse(toastArgs.Argument);
+
+            // 根据传递的参数执行相应的操作
+            if (args["action"] == "ConfirmUpdate")
+            {
+                // 执行确认操作的逻辑
+                // 打开日志窗口和 URL 的操作
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    UpdateLog updateLogWindow = new UpdateLog();
+                    updateLogWindow.Show();
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "https://wwf.lanzoue.com/b00g2fhjzg?pwd=1bxs#1bxs",
+                        UseShellExecute = true
+                    });
+                });
+            }
+        };
 
     }
-
+    //检测更新
     private async Task CheckUpdate()
     {
-        var client = new RestClient("https://gitee.com/Shell520/shell/raw/master/admin/通话录音助手");
-        var request = new RestRequest("", Method.Get);
-        RestResponse response = client.Execute<RestResponse>(request);
-        string? latestVersion = response.Content;
-        string currentVersion = "2.9";
+        //var client = new RestClient("https://gitee.com/Shell520/shell/raw/master/admin/通话录音助手");
+        //var request = new RestRequest("", Method.Get);
+        //RestResponse response = client.Execute<RestResponse>(request);
+        string? latestVersion = Soft.GetNewVersion();
+        string? UpdateLog = Web.GetUpdateLog("2706a699-8246-4ffc-afb9-1d904e1dbe4f");
+        text_updateLog.Text = "\n" + UpdateLog + "\n";
+        string currentVersion = "3.0";
         if (latestVersion != currentVersion)
         {
-            UpdateLog updateLogWindow = new UpdateLog();
-            updateLogWindow.Show();
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "https://wwf.lanzoue.com/b00g2fhjzg?pwd=1bxs#1bxs",
-                UseShellExecute = true
-            });
+
+            new ToastContentBuilder()
+    .AddText("检测到有新版本")
+    .AddInlineImage(new Uri("https://tse2-mm.cn.bing.net/th/id/OIP-C.iaaxjToOi5MTMuMFkxrhnAHaF2?rs=1&pid=ImgDetMain"))
+    .AddButton(new ToastButton()
+        .SetContent("查看日志并更新")
+        .AddArgument("action", "ConfirmUpdate"))  // 传递参数
+    .AddButton(new ToastButtonDismiss("取消")) // 取消按钮
+    .Show();
 
         }
     }
@@ -132,7 +164,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void adm_MouseMove(object sender, MouseEventArgs e)
+    private void adm_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
         if (isDragging && e.LeftButton == MouseButtonState.Pressed)
         {
