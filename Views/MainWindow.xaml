@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:CallRecording.Converters"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="通话录音助手"
     Width="600"
@@ -11,7 +12,9 @@
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
 
+
     <Window.Resources>
+        <local:DoubleToThicknessConverter x:Key="DoubleToThicknessConverter" />
         <Style TargetType="Button">
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Padding" Value="10,5" />
@@ -103,13 +106,60 @@
                             <StackPanel
                                 x:Name="Diskoccupancyinformation"
                                 Grid.Row="1"
+                                Width="{Binding Wt}"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center">
-                                <TextBlock Margin="1" Text="{Binding TotalSize}" />
-                                <TextBlock Margin="1" Text="{Binding AvailableFreeSpace}" />
-                                <TextBlock Margin="1" Text="{Binding UsedSpace}" />
-                                <TextBlock Margin="1" Text="{Binding IusedSpace}" />
+
+                                <!--  显示总容量、可用空间、已用空间、录音文件占用空间  -->
+                                <TextBlock Margin="1" Text="{Binding TotalSizeFM, StringFormat='磁盘总空间: {0} '}" />
+                                <TextBlock Margin="1" Text="{Binding AvailableFreeSpaceFM, StringFormat='磁盘可用空间: {0} '}" />
+                                <TextBlock Margin="1" Text="{Binding UsedSpaceFM, StringFormat='磁盘已用空间: {0} '}" />
+                                <TextBlock Margin="1" Text="{Binding IusedSpaceFM, StringFormat='录音文件占用空间: {0} '}" />
+
+                                <!--  柱状图展示四个变量的比例  -->
+                                <Grid
+                                    Width="{Binding Wt}"
+                                    Height="20"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center">
+                                    <!--  已用空间部分  -->
+                                    <Rectangle
+                                        Width="{Binding UsedSpaceProportion}"
+                                        HorizontalAlignment="Left"
+                                        Fill="Red" />
+
+                                    <!--  可用空间部分  -->
+                                    <Rectangle
+                                        Width="{Binding AvailableFreeSpaceProportion}"
+                                        Margin="{Binding UsedSpaceProportion, Converter={StaticResource DoubleToThicknessConverter}}"
+                                        HorizontalAlignment="Left"
+                                        Fill="Green" />
+
+                                    <!--  录音文件占用空间部分  -->
+                                    <Rectangle
+                                        Width="{Binding IusedSpaceProportion}"
+                                        Margin="{Binding TotalUsedProportion, Converter={StaticResource DoubleToThicknessConverter}}"
+                                        HorizontalAlignment="Left"
+                                        Fill="Blue" />
+                                </Grid>
+
+                                <!--  颜色说明  -->
+                                <StackPanel Margin="5" Orientation="Horizontal">
+                                    <TextBlock
+                                        Margin="5"
+                                        Foreground="Red"
+                                        Text="已用空间" />
+                                    <TextBlock
+                                        Margin="5"
+                                        Foreground="Green"
+                                        Text="可用空间" />
+                                    <TextBlock
+                                        Margin="5"
+                                        Foreground="Blue"
+                                        Text="录音文件占用空间" />
+                                </StackPanel>
                             </StackPanel>
+
                         </Grid>
                     </TabItem>
                     <TabItem Header="系统配置">

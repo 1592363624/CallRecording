@@ -22,6 +22,7 @@ using System.Windows.Input;
 using Timer = System.Windows.Forms.Timer;
 using System.Drawing;
 using System.Reflection;
+using MySharedProject;
 
 namespace CallRecording.ViewModels
 {
@@ -35,14 +36,7 @@ namespace CallRecording.ViewModels
         private Icon _defaultIcon;
         private Icon _recordingIcon;
         private bool _isDefaultIcon = true;
-        [ObservableProperty]
-        public string totalSize;
-        [ObservableProperty]
-        public string availableFreeSpace;
-        [ObservableProperty]
-        public string usedSpace;
-        [ObservableProperty]
-        public string iusedSpace;
+
 
 
         [ObservableProperty] private string _recordingSavePath;
@@ -71,6 +65,15 @@ namespace CallRecording.ViewModels
             }
             //读取更改的保存路径
             RecordingSavePath = ConfigurationHelper.GetSetting("OutputDirectory");
+            //如果不是绝对目录就设置为绝对目录
+
+            string? pt = Path.GetPathRoot(RecordingSavePath);
+            if (pt == "")
+            {
+                ConfigurationHelper.SetSetting("OutputDirectory", AppDomain.CurrentDomain.BaseDirectory + "Recordings");
+            }
+
+
 
             // 显示启动通知
             NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
@@ -102,17 +105,8 @@ namespace CallRecording.ViewModels
             _recorder = new Recorder(_logger, _selectedFormat);
 
             //读取磁盘占用相关信息
-            Task.Run(() =>
-            {
-                var path = ConfigurationHelper.GetSetting("OutputDirectory");
-                var DiskInfoIn = Utils.GetDiskInfoInMB(path);
+            DataSource.gbmvvm.GetDiskInFo();
 
-
-                TotalSize = "磁盘总空间: " + Utils.FormatSize(DiskInfoIn.总大小);
-                AvailableFreeSpace = "磁盘可用空间: " + Utils.FormatSize(DiskInfoIn.可用空间);
-                UsedSpace = "磁盘已用空间: " + Utils.FormatSize(DiskInfoIn.已用空间);
-                IusedSpace = "录音文件占用空间: " + Utils.FormatSize(Utils.GetFolderSize(path));
-            });
         }
 
         private void IconBlinkTimer_Tick(object? sender, EventArgs e)
@@ -305,17 +299,21 @@ namespace CallRecording.ViewModels
                 _iconBlinkTimer.Stop(); // 停止图标闪烁
                 _notifyIcon.Icon = _defaultIcon; // 恢复为默认图标
 
-                Task.Run(() =>
-                {
-                    var path = AppDomain.CurrentDomain.BaseDirectory + ConfigurationHelper.GetSetting("OutputDirectory");
-                    var DiskInfoIn = Utils.GetDiskInfoInMB(path);
+                //读取磁盘占用相关信息
+
+                DataSource.gbmvvm.GetDiskInFo();
+
+                //Task.Run(() =>
+                //{
+                //    var path = AppDomain.CurrentDomain.BaseDirectory + ConfigurationHelper.GetSetting("OutputDirectory");
+                //    var DiskInfoIn = Utils.GetDiskInfoInMB(path);
 
 
-                    TotalSize = Utils.FormatSize(DiskInfoIn.总大小);
-                    AvailableFreeSpace = Utils.FormatSize(DiskInfoIn.可用空间);
-                    UsedSpace = Utils.FormatSize(DiskInfoIn.已用空间);
-                    IusedSpace = Utils.FormatSize(Utils.GetFolderSize(path));
-                });
+                //    TotalSize = Utils.FormatSize(DiskInfoIn.总大小);
+                //    AvailableFreeSpace = Utils.FormatSize(DiskInfoIn.可用空间);
+                //    UsedSpace = Utils.FormatSize(DiskInfoIn.已用空间);
+                //    IusedSpace = Utils.FormatSize(Utils.GetRecSize(path));
+                //});
             }
         }
 

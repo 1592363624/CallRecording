@@ -12,6 +12,7 @@ using CallRecording.Models;
 using CallRecording.Services;
 using CallRecording.ViewModels;
 using Microsoft.Toolkit.Uwp.Notifications;
+using MySharedProject;
 using MySharedProject.Model.MyAuth;
 using MySharedProject.Utiles;
 using RestSharp;
@@ -51,8 +52,9 @@ public partial class MainWindow : Window
             var mainViewModel = new MainViewModel();
             var app = App.Current;
             // 设置主窗口的数据上下文
-            Bottom_information_bar.DataContext = app;
-            Diskoccupancyinformation.DataContext = mainViewModel;
+            //Bottom_information_bar.DataContext = app;
+            Onlineidentification.DataContext = app;
+            Diskoccupancyinformation.DataContext = DataSource.gbmvvm;
             DataContext = mainViewModel;
 
 

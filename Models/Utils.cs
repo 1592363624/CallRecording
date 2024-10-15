@@ -1,10 +1,12 @@
 ﻿using System;
 using System.IO;
+using CallRecording.ViewModels;
 
 namespace CallRecording.Models
 {
     public static class Utils
     {
+
         public static string GetFormattedTime()
         {
             return DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
@@ -83,6 +85,31 @@ namespace CallRecording.Models
             return folderSize;
         }
 
+        public static long GetRecSize(string folderPath)
+        {
+            long totalFileSize = 0;
+
+            // 获取指定目录下的所有文件，并过滤文件名包含“通话录音”的文件
+            try
+            {
+                DirectoryInfo dirInfo = new DirectoryInfo(folderPath);
+
+                // 遍历当前目录中符合条件的文件
+                foreach (FileInfo file in dirInfo.GetFiles("*通话录音*"))
+                {
+                    totalFileSize += file.Length;  // 累加符合条件文件的大小
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"获取文件大小时出错: {ex.Message}");
+            }
+
+            return totalFileSize;
+        }
+
+
+
         public static string FormatSize(long sizeInBytes)
         {
             // 将字节大小转换为合适的单位（KB, MB, GB等）
@@ -98,5 +125,7 @@ namespace CallRecording.Models
 
             return $"{size:F2} {sizeUnits[unitIndex]}";
         }
+
+
     }
 }
