@@ -1,46 +1,39 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
-using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Forms;
 using CallRecording.Models;
+using CallRecording.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
 using IWshRuntimeLibrary;
-using CallRecording.Services;
+using MySharedProject;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using static CallRecording.Models.Recorder;
-using NAudio.Wave;
-using System.Runtime.InteropServices;
-using System.Windows.Controls;
-using System.Windows.Input;
+using File = System.IO.File;
 using Timer = System.Windows.Forms.Timer;
-using System.Drawing;
-using System.Reflection;
-using MySharedProject;
 
 namespace CallRecording.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
         private readonly Logger _logger;
-        private NotifyIcon _notifyIcon;
         private readonly Recorder _recorder;
-        private WindowMonitor _windowMonitor;
-        private Timer _iconBlinkTimer;
         private Icon _defaultIcon;
-        private Icon _recordingIcon;
+        private Timer _iconBlinkTimer;
         private bool _isDefaultIcon = true;
-
+        private NotifyIcon _notifyIcon;
+        private Icon _recordingIcon;
 
 
         [ObservableProperty] private string _recordingSavePath;
-        [ObservableProperty] public Recorder.AudioFormat _selectedFormat = Recorder.AudioFormat.MP3;
+        [ObservableProperty] public AudioFormat _selectedFormat;
+        private WindowMonitor _windowMonitor;
 
         public MainViewModel()
         {
@@ -48,11 +41,11 @@ namespace CallRecording.ViewModels
             _logger = new Logger(Logs);
 
             // 添加音频格式选项
-            AudioFormats = new List<Recorder.AudioFormat>
-        {
-            Recorder.AudioFormat.WAV,
-            Recorder.AudioFormat.MP3
-        };
+            AudioFormats = new List<AudioFormat>
+            {
+                AudioFormat.MP3,
+                AudioFormat.WAV
+            };
 
             // 默认保存路径为软件的运行目录
             //RecordingSavePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recordings");
@@ -63,6 +56,7 @@ namespace CallRecording.ViewModels
                 Directory.CreateDirectory(RecordingSavePath);
                 ConfigurationHelper.SetSetting("OutputDirectory", RecordingSavePath);
             }
+
             //读取更改的保存路径
             RecordingSavePath = ConfigurationHelper.GetSetting("OutputDirectory");
             //如果不是绝对目录就设置为绝对目录
@@ -72,7 +66,6 @@ namespace CallRecording.ViewModels
             {
                 ConfigurationHelper.SetSetting("OutputDirectory", AppDomain.CurrentDomain.BaseDirectory + "Recordings");
             }
-
 
 
             // 显示启动通知
@@ -86,7 +79,8 @@ namespace CallRecording.ViewModels
             // 初始化托盘图标
             _defaultIcon = _notifyIcon.Icon; // 假设初始图标已经在_setupTrayIcon中设置
             var assembly = Assembly.GetExecutingAssembly();
-            _recordingIcon = new Icon(assembly.GetManifestResourceStream("CallRecording.src.通用软件图片闪动.ico")); // 替换成你的录音中图标路径
+            _recordingIcon =
+                new Icon(assembly.GetManifestResourceStream("CallRecording.src.通用软件图片闪动.ico")); // 替换成你的录音中图标路径
 
             // 初始化定时器，间隔500毫秒（闪烁频率）
             _iconBlinkTimer = new Timer
@@ -104,10 +98,21 @@ namespace CallRecording.ViewModels
             // 创建 Recorder 实例
             _recorder = new Recorder(_logger, _selectedFormat);
 
+            //读取最后使用的音频格式
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                SelectedFormat = ConfigurationHelper.GetSetting("音频格式") == "MP3"
+                    ? AudioFormat.MP3
+                    : AudioFormat.WAV;
+            });
+
             //读取磁盘占用相关信息
             DataSource.gbmvvm.GetDiskInFo();
-
         }
+
+        public List<AudioFormat> AudioFormats { get; }
+
+        public ObservableCollection<string> Logs { get; }
 
         private void IconBlinkTimer_Tick(object? sender, EventArgs e)
         {
@@ -119,12 +124,9 @@ namespace CallRecording.ViewModels
             {
                 _notifyIcon.Icon = _defaultIcon;
             }
+
             _isDefaultIcon = !_isDefaultIcon;
         }
-
-        public List<Recorder.AudioFormat> AudioFormats { get; }
-
-        public ObservableCollection<string> Logs { get; }
 
         // 选择保存路径命令
         [RelayCommand]
@@ -158,9 +160,7 @@ namespace CallRecording.ViewModels
         [RelayCommand]
         private void AddMo()
         {
-
         }
-
 
 
         // 开机自启命令
@@ -183,10 +183,11 @@ namespace CallRecording.ViewModels
             }
             else
             {
-                if (System.IO.File.Exists(shortcutPath))
+                if (File.Exists(shortcutPath))
                 {
-                    System.IO.File.Delete(shortcutPath);
+                    File.Delete(shortcutPath);
                 }
+
                 MessageBox.Show("取消开机自启成功");
             }
         }
@@ -278,8 +279,8 @@ namespace CallRecording.ViewModels
             _logger.LogMessage($"检测到通话窗口: {title}", "系统");
             if (!_recorder.IsRecording())
             {
-                _recorder.StartRecording(RecordingSavePath, "通话");//开始录音
-                _iconBlinkTimer.Start();//通话录音的时候图标闪烁
+                _recorder.StartRecording(RecordingSavePath, "通话"); //开始录音
+                _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
             }
         }
 
@@ -294,7 +295,7 @@ namespace CallRecording.ViewModels
         {
             if (_recorder.IsRecording())
             {
-                _logger.LogMessage("通话结束，停止录音并保存文件。", "系统");//停止录音
+                _logger.LogMessage("通话结束，停止录音并保存文件。", "系统"); //停止录音
                 _recorder.StopRecording();
                 _iconBlinkTimer.Stop(); // 停止图标闪烁
                 _notifyIcon.Icon = _defaultIcon; // 恢复为默认图标
@@ -321,23 +322,21 @@ namespace CallRecording.ViewModels
         {
             if (_recorder.IsRecording())
             {
-                MessageBoxResult result = MessageBox.Show("检测到正在录制,为更改音频格式需要停止录制,是否继续更换音频格式", "设置更改", MessageBoxButton.OKCancel);
+                MessageBoxResult result =
+                    MessageBox.Show("检测到正在录制,为更改音频格式需要停止录制,是否继续更换音频格式", "设置更改", MessageBoxButton.OKCancel);
                 if (result == MessageBoxResult.OK)
                 {
                     StopRecording();
                     _logger.LogMessage($"所选录制音频格式已更改为: {value}", "用户确认更改音频格式");
-
                 }
                 else if (result == MessageBoxResult.Cancel)
                 {
                     _logger.LogMessage($"用户已取消更改所选录制音频格式", "用户取消更改音频格式");
                 }
-
             }
 
             _recorder.UpdateAudioFormat(value);
             _logger.LogMessage($"所选录制音频格式已更改为: {value}", "设置更改");
-
         }
     }
 }

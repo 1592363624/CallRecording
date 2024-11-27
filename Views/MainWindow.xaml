@@ -80,7 +80,6 @@
         <Grid Grid.Row="1" />
 
 
-
         <!--  新增扩展区域  -->
         <Expander
             Grid.Row="2"
@@ -112,7 +111,8 @@
 
                                 <!--  显示总容量、可用空间、已用空间、录音文件占用空间  -->
                                 <TextBlock Margin="1" Text="{Binding TotalSizeFM, StringFormat='磁盘总空间: {0} '}" />
-                                <TextBlock Margin="1" Text="{Binding AvailableFreeSpaceFM, StringFormat='磁盘可用空间: {0} '}" />
+                                <TextBlock Margin="1"
+                                           Text="{Binding AvailableFreeSpaceFM, StringFormat='磁盘可用空间: {0} '}" />
                                 <TextBlock Margin="1" Text="{Binding UsedSpaceFM, StringFormat='磁盘已用空间: {0} '}" />
                                 <TextBlock Margin="1" Text="{Binding IusedSpaceFM, StringFormat='录音文件占用空间: {0} '}" />
 
@@ -195,9 +195,11 @@
                                 ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。" />
 
                             <ComboBox
+                                x:Name="cb_AudioFormats"
                                 ItemsSource="{Binding AudioFormats}"
                                 SelectedItem="{Binding SelectedFormat}"
-                                ToolTip="MP3格式文件小(不过录制音频效果也已经优化的其实还不错),WAV格式无损音频(文件大)">
+                                SelectionChanged="Cb_AudioFormats_OnSelectionChanged"
+                                ToolTip="★推荐★MP3格式文件小(不过录制音频效果也已经优化的其实还不错),WAV格式无损音频(文件大)">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding}" />

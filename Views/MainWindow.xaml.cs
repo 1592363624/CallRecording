@@ -1,42 +1,29 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Net;
-using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Security.Policy;
 using System.Text;
 using System.Windows;
-using System.Windows.Forms;
+using System.Windows.Controls;
 using System.Windows.Input;
 using CallRecording.Models;
-using CallRecording.Services;
 using CallRecording.ViewModels;
 using Microsoft.Toolkit.Uwp.Notifications;
 using MySharedProject;
 using MySharedProject.Model.MyAuth;
 using MySharedProject.Utiles;
-using RestSharp;
+using Control = System.Windows.Forms.Control;
+using Point = System.Drawing.Point;
 
 namespace CallRecording.Views;
 
 public partial class MainWindow : Window
 {
-
-    // 获取窗口句柄
-    [DllImport("user32.dll")]
-    private static extern IntPtr WindowFromPoint(System.Drawing.Point p);
-
-    // 获取窗口类名
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
-
-    // 获取窗口进程ID
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+    bool 是否点击通知更新的确认按钮 = false;
+    private bool isDragging = false;
 
 
     string msg = "";
-    bool 是否点击通知更新的确认按钮 = false;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -57,7 +44,7 @@ public partial class MainWindow : Window
             Diskoccupancyinformation.DataContext = DataSource.gbmvvm;
             DataContext = mainViewModel;
 
-
+            //初始化默认数据
             Hide();
             bool.TryParse(ConfigurationHelper.GetSetting("是否开机自启"), out bool isStartupEnabled);
             bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
@@ -75,7 +62,7 @@ public partial class MainWindow : Window
             {
                 // 执行确认操作的逻辑
                 // 打开日志窗口和 URL 的操作
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                Application.Current.Dispatcher.Invoke(() =>
                 {
                     UpdateLog updateLogWindow = new UpdateLog();
                     updateLogWindow.Show();
@@ -87,8 +74,20 @@ public partial class MainWindow : Window
                 });
             }
         };
-
     }
+
+    // 获取窗口句柄
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(Point p);
+
+    // 获取窗口类名
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+    // 获取窗口进程ID
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
     //检测更新
     private async Task CheckUpdate()
     {
@@ -101,16 +100,15 @@ public partial class MainWindow : Window
         string currentVersion = "3.0";
         if (latestVersion != currentVersion)
         {
-
             new ToastContentBuilder()
-    .AddText("检测到有新版本")
-    .AddInlineImage(new Uri("https://tse2-mm.cn.bing.net/th/id/OIP-C.iaaxjToOi5MTMuMFkxrhnAHaF2?rs=1&pid=ImgDetMain"))
-    .AddButton(new ToastButton()
-        .SetContent("查看日志并更新")
-        .AddArgument("action", "ConfirmUpdate"))  // 传递参数
-    .AddButton(new ToastButtonDismiss("取消")) // 取消按钮
-    .Show();
-
+                .AddText("检测到有新版本")
+                .AddInlineImage(new Uri(
+                    "https://tse2-mm.cn.bing.net/th/id/OIP-C.iaaxjToOi5MTMuMFkxrhnAHaF2?rs=1&pid=ImgDetMain"))
+                .AddButton(new ToastButton()
+                    .SetContent("查看日志并更新")
+                    .AddArgument("action", "ConfirmUpdate")) // 传递参数
+                .AddButton(new ToastButtonDismiss("取消")) // 取消按钮
+                .Show();
         }
     }
 
@@ -118,6 +116,7 @@ public partial class MainWindow : Window
     {
         base.OnClosed(e);
     }
+
     private void MainWindow_Closing(object sender, CancelEventArgs e)
     {
         // 阻止窗口关闭并隐藏窗口
@@ -127,7 +126,6 @@ public partial class MainWindow : Window
         // 结束应用程序
         // if (DataContext is MainViewModel viewModel) viewModel.ExitApp(this, null);
     }
-    private bool isDragging = false;
 
     private void adm_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -151,7 +149,7 @@ public partial class MainWindow : Window
     private void CaptureWindowInfo()
     {
         // 获取当前鼠标位置
-        System.Drawing.Point screenPoint = System.Windows.Forms.Control.MousePosition;
+        Point screenPoint = Control.MousePosition;
 
         // 获取窗口句柄
         IntPtr hWnd = WindowFromPoint(screenPoint);
@@ -167,11 +165,12 @@ public partial class MainWindow : Window
             Process process = Process.GetProcessById((int)processId);
 
             ConfigurationHelper.SetSetting("监控窗口类名", ConfigurationHelper.GetSetting("监控窗口类名") + "|" + className);
-            ConfigurationHelper.SetSetting("监控窗口进程名", ConfigurationHelper.GetSetting("监控窗口进程名") + "|" + process.ProcessName);
+            ConfigurationHelper.SetSetting("监控窗口进程名",
+                ConfigurationHelper.GetSetting("监控窗口进程名") + "|" + process.ProcessName);
         }
     }
 
-    private void adm_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    private void adm_MouseMove(object sender, MouseEventArgs e)
     {
         if (isDragging && e.LeftButton == MouseButtonState.Pressed)
         {
@@ -189,5 +188,10 @@ public partial class MainWindow : Window
             //打开文件夹
             Process.Start("explorer.exe", FileUtil.当前文件目录 + "Recordings");
         }
+    }
+
+    private void Cb_AudioFormats_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ConfigurationHelper.SetSetting("音频格式", cb_AudioFormats.SelectedItem.ToString());
     }
 }

@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Threading;
+﻿using System.IO;
 using NAudio.CoreAudioApi;
 using NAudio.Lame;
 using NAudio.Wave;
@@ -11,30 +9,32 @@ namespace CallRecording.Models
     {
         public enum AudioFormat
         {
-            WAV,
-            MP3
+            MP3,
+            WAV
         }
+
 
         private readonly object _lockObject = new();
         private readonly Logger _logger;
-        private AudioFormat _selectedFormat;
+        private bool _isMixing = false;
         private bool _isRecording;
-        private string _outputSpeakerFileName;
-        private string _outputMicrophoneFileName;
-        private string _outputMixedFileName;
-        private WaveFileWriter _waveSpeakerFile;
-        private WaveFileWriter _waveMicrophoneFile;
         public WasapiLoopbackCapture _loopbackSource;
         private WasapiCapture _microphoneSource;
-        private bool _isMixing = false;
-        private LameMP3FileWriter _mp3SpeakerFile;
         private LameMP3FileWriter _mp3MicrophoneFile;
+        private LameMP3FileWriter _mp3SpeakerFile;
+        private string _outputMicrophoneFileName;
+        private string _outputMixedFileName;
+        private string _outputSpeakerFileName;
+        private AudioFormat _selectedFormat;
+        private WaveFileWriter _waveMicrophoneFile;
+        private WaveFileWriter _waveSpeakerFile;
 
         public Recorder(Logger logger, AudioFormat selectedFormat)
         {
             _logger = logger;
             _selectedFormat = selectedFormat;
         }
+
         public void UpdateAudioFormat(AudioFormat newFormat)
         {
             _selectedFormat = newFormat;
@@ -59,18 +59,23 @@ namespace CallRecording.Models
                     if (_selectedFormat == AudioFormat.WAV)
                     {
                         _waveSpeakerFile = new WaveFileWriter(_outputSpeakerFileName, _loopbackSource.WaveFormat);
-                        _waveMicrophoneFile = new WaveFileWriter(_outputMicrophoneFileName, _microphoneSource.WaveFormat);
+                        _waveMicrophoneFile =
+                            new WaveFileWriter(_outputMicrophoneFileName, _microphoneSource.WaveFormat);
 
                         _loopbackSource.DataAvailable += (s, e) => _waveSpeakerFile.Write(e.Buffer, 0, e.BytesRecorded);
-                        _microphoneSource.DataAvailable += (s, e) => _waveMicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
+                        _microphoneSource.DataAvailable +=
+                            (s, e) => _waveMicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
                     }
                     else if (_selectedFormat == AudioFormat.MP3)
                     {
-                        _mp3SpeakerFile = new LameMP3FileWriter(_outputSpeakerFileName, _loopbackSource.WaveFormat, LAMEPreset.STANDARD);
-                        _mp3MicrophoneFile = new LameMP3FileWriter(_outputMicrophoneFileName, _microphoneSource.WaveFormat, LAMEPreset.STANDARD);
+                        _mp3SpeakerFile = new LameMP3FileWriter(_outputSpeakerFileName, _loopbackSource.WaveFormat,
+                            LAMEPreset.STANDARD);
+                        _mp3MicrophoneFile = new LameMP3FileWriter(_outputMicrophoneFileName,
+                            _microphoneSource.WaveFormat, LAMEPreset.STANDARD);
 
                         _loopbackSource.DataAvailable += (s, e) => _mp3SpeakerFile.Write(e.Buffer, 0, e.BytesRecorded);
-                        _microphoneSource.DataAvailable += (s, e) => _mp3MicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
+                        _microphoneSource.DataAvailable +=
+                            (s, e) => _mp3MicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
                     }
 
                     _loopbackSource.RecordingStopped += OnRecordingStopped;
@@ -88,6 +93,7 @@ namespace CallRecording.Models
                     Cleanup();
                 }
             }
+
             Utils.通话监控次数add();
         }
 
@@ -180,8 +186,10 @@ namespace CallRecording.Models
 
                         using (var waveFileWriter = new WaveFileWriter(_outputMixedFileName, waveFormat))
                         {
-                            var buffer1 = new float[readerSpeaker.WaveFormat.SampleRate * readerSpeaker.WaveFormat.Channels];
-                            var buffer2 = new float[readerMicrophone.WaveFormat.SampleRate * readerMicrophone.WaveFormat.Channels];
+                            var buffer1 = new float[readerSpeaker.WaveFormat.SampleRate *
+                                                    readerSpeaker.WaveFormat.Channels];
+                            var buffer2 = new float[readerMicrophone.WaveFormat.SampleRate *
+                                                    readerMicrophone.WaveFormat.Channels];
 
                             int readSpeaker, readMicrophone;
                             while ((readSpeaker = readerSpeaker.Read(buffer1, 0, buffer1.Length)) > 0)
@@ -194,6 +202,7 @@ namespace CallRecording.Models
                                 {
                                     buffer1[i] = (buffer1[i] + buffer2[i]) / 2; // 防止溢出，音量混合
                                 }
+
                                 waveFileWriter.WriteSamples(buffer1, 0, samplesToMix);
                             }
                         }
@@ -214,7 +223,8 @@ namespace CallRecording.Models
                             throw new InvalidOperationException("录制的两个音频文件格式不一致，无法混音");
                         }
 
-                        using (var writer = new LameMP3FileWriter(_outputMixedFileName, waveFormatSpeaker, LAMEPreset.STANDARD))
+                        using (var writer = new LameMP3FileWriter(_outputMixedFileName, waveFormatSpeaker,
+                                   LAMEPreset.STANDARD))
                         {
                             var bufferSpeaker = new byte[waveFormatSpeaker.AverageBytesPerSecond];
                             var bufferMicrophone = new byte[waveFormatMicrophone.AverageBytesPerSecond];
@@ -262,7 +272,6 @@ namespace CallRecording.Models
                 }
 
 
-
                 _logger.LogMessage($"混音已完成，文件保存到: {_outputMixedFileName}", "录音器");
 
                 // 等待文件流完全释放
@@ -289,8 +298,10 @@ namespace CallRecording.Models
                 {
                     reader.CopyTo(writer);
                 }
+
                 return wavFile;
             }
+
             return inputFile;
         }
 
