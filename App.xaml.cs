@@ -1,41 +1,49 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Windows;
+using System.Windows.Media;
+using CallRecording.Models;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Configuration;
 using MySharedProject;
 using MySharedProject.Model.MyAuth;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
-using System.Diagnostics;
-using CallRecording.Models;
-using FlaUI.Core.Input;
-using MySharedProject.Model.Download;
-using System.Drawing;
-using CallRecording.Views;
-using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
-using System.Windows.Media;
 
 namespace CallRecording;
+
 [ObservableObject]
 public partial class App : Application
 {
-    public IConfiguration Configuration { get; private set; }
+    [ObservableProperty] private string directorySize = "获取失败";
+
+    [ObservableProperty] private string diskUsage = "获取失败";
+
+    // 在线状态颜色
+    [ObservableProperty] private Brush onlineStatusColor = Brushes.Red;
+
+    [ObservableProperty] private string onlineStatusToolTip = "离线";
+
     string? reftoken;
+    public IConfiguration Configuration { get; private set; }
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        //释放appsettings.json配置文件
+        Utils.EnsureAppSettingsFile();
+        //初始化配置文件&补充新增配置项
+        Utils.InitAppsettings();
 
         var builder = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", false, true);
+            .AddJsonFile("appsettings.json", true, true);
         Configuration = builder.Build();
+
 
         //可以屏蔽这段正常运行 因为是用的共享项目的代码
 
         GetSysInfo();
 
-        if (ConfigurationHelper.GetSetting("Is_Rge") != "YY")
+        if (ConfigurationHelper.GetSetting("Is_Rge") != "YYY")
         {
             await loadConfiguration();
         }
@@ -45,27 +53,20 @@ public partial class App : Application
         //可以屏蔽这段正常运行 因为是用的共享项目的代码
     }
 
+
     private void GetSysInfo()
     {
         DataSource.ComputerUserName = Environment.UserName;
         DataSource.Device_info = ConfigurationHelper.GetSetting("Device_info");
         DataSource.Device_code = ConfigurationHelper.GetSetting("Device_code");
     }
-    // 在线状态颜色
-    [ObservableProperty]
-    private System.Windows.Media.Brush onlineStatusColor = System.Windows.Media.Brushes.Red;
-    [ObservableProperty]
-    private string onlineStatusToolTip = "离线";
-    [ObservableProperty]
-    private string directorySize = "获取失败";
-    [ObservableProperty]
-    private string diskUsage = "获取失败";
 
 
     private async void Login()
     {
-
-        string msg = MySharedProject.Model.MyAuth.Login.SoftLogin(ConfigurationHelper.GetSetting("User"), null, null, ref reftoken);
+        string msg =
+            MySharedProject.Model.MyAuth.Login.SoftLogin(ConfigurationHelper.GetSetting("User"), null, null,
+                ref reftoken);
         Debug.WriteLine(msg);
 
         if (msg == "登录成功")
@@ -76,18 +77,18 @@ public partial class App : Application
                 //Thread.Sleep(160000);
                 while (true)
                 {
-                    string msg = MySharedProject.Model.MyAuth.Heart.SoftHeart(reftoken);
+                    string msg = Heart.SoftHeart(reftoken);
                     if (msg == "心跳成功")
                     {
-                        OnlineStatusColor = System.Windows.Media.Brushes.Green;
+                        OnlineStatusColor = Brushes.Green;
                         OnlineStatusToolTip = "运行正常";
                     }
                     else
                     {
-                        OnlineStatusColor = System.Windows.Media.Brushes.Red;
+                        OnlineStatusColor = Brushes.Red;
                         OnlineStatusToolTip = "离线";
-
                     }
+
                     Thread.Sleep(160000);
                 }
             });
@@ -102,7 +103,7 @@ public partial class App : Application
                 //Thread.Sleep(160000);
                 while (true)
                 {
-                    string msg = MySharedProject.Model.MyAuth.Heart.SoftHeart(reftoken);
+                    string msg = Heart.SoftHeart(reftoken);
                     Thread.Sleep(160000);
                 }
             });
@@ -132,7 +133,6 @@ public partial class App : Application
             // 设置设备信息
             DataSource.Device_info = operatingSystemVersion;
             DataSource.Device_code = machineCode;
-
         }
         catch (Exception ex)
         {
@@ -143,13 +143,12 @@ public partial class App : Application
         string user = DataSource.ComputerUserName + Api.GetCurrentTimestamp();
         ConfigurationHelper.SetSetting("User", user);
 
-        string msg = MySharedProject.Model.MyAuth.Register.SoftRegister(user);
+        string msg = Register.SoftRegister(user);
         Debug.WriteLine(msg);
 
         if (msg == "注册成功")
         {
-            ConfigurationHelper.SetSetting("Is_Rge", "YY");
+            ConfigurationHelper.SetSetting("Is_Rge", "YYY");
         }
-
     }
 }
