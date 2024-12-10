@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
@@ -97,8 +98,9 @@ public partial class MainWindow : Window
         string? latestVersion = Soft.GetNewVersion();
         string? UpdateLog = Web.GetUpdateLog("2706a699-8246-4ffc-afb9-1d904e1dbe4f");
         text_updateLog.Text = "\n" + UpdateLog + "\n";
-        string currentVersion = "3.0";
-        if (latestVersion != currentVersion)
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+        if (latestVersion != fileVersionInfo.FileVersion)
         {
             new ToastContentBuilder()
                 .AddText("检测到有新版本")
