@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 
@@ -29,7 +24,13 @@ namespace CallRecording.Models
 
         public static string GetSetting(string key)
         {
-            return _configuration[key];
+            var value = _configuration[key];
+            if (value == null)
+            {
+                SetSetting(key, "null"); // 如果配置项不存在，则设置默认值"null"
+            }
+
+            return value ?? "null"; // 如果配置项不存在，则返回默认值"null"
         }
 
         public static void SetSetting(string key, string value)
@@ -54,8 +55,10 @@ namespace CallRecording.Models
                         nextParent = new JObject();
                         parent[segment] = nextParent;
                     }
+
                     parent = nextParent;
                 }
+
                 parent[segments[^1]] = value;
             }
 
