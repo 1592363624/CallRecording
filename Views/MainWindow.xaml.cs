@@ -6,10 +6,10 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using CallRecording.Models;
 using CallRecording.ViewModels;
 using Microsoft.Toolkit.Uwp.Notifications;
 using MySharedProject;
+using MySharedProject.Model;
 using MySharedProject.Model.MyAuth;
 using MySharedProject.Utiles;
 using Control = System.Windows.Forms.Control;
@@ -52,27 +52,43 @@ public partial class MainWindow : Window
             kjzq.IsChecked = isStartupEnabled;
             ysms.IsChecked = isStealth;
         };
-        //订阅通知按钮事件
+        // 订阅通知按钮事件
         ToastNotificationManagerCompat.OnActivated += toastArgs =>
         {
-            // 解析传递的参数
-            var args = ToastArguments.Parse(toastArgs.Argument);
-
-            // 根据传递的参数执行相应的操作
-            if (args["action"] == "ConfirmUpdate")
+            try
             {
-                // 执行确认操作的逻辑
-                // 打开日志窗口和 URL 的操作
-                Application.Current.Dispatcher.Invoke(() =>
+                // 解析传递的参数
+                var args = ToastArguments.Parse(toastArgs.Argument);
+
+                // 使用 TryGetValue 方法获取 'action' 参数
+                if (args.TryGetValue("action", out string actionValue))
                 {
-                    UpdateLog updateLogWindow = new UpdateLog();
-                    updateLogWindow.Show();
-                    Process.Start(new ProcessStartInfo
+                    if (actionValue == "ConfirmUpdate")
                     {
-                        FileName = "https://wwf.lanzoue.com/b00g2fhjzg?pwd=1bxs#1bxs",
-                        UseShellExecute = true
-                    });
-                });
+                        // 执行确认操作的逻辑
+                        // 打开日志窗口和 URL 的操作
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            UpdateLog updateLogWindow = new UpdateLog();
+                            updateLogWindow.Show();
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = "https://wwf.lanzoue.com/b00g2fhjzg?pwd=1bxs#1bxs",
+                                UseShellExecute = true
+                            });
+                        });
+                    }
+                }
+                else
+                {
+                    // 如果没有传递 'action' 参数，处理默认逻辑
+                    Debug.WriteLine("没有传递 'action' 参数，执行默认操作,视为没点击任何通知按钮");
+                }
+            }
+            catch (Exception ex)
+            {
+                // 捕获并记录异常
+                Debug.WriteLine("处理 Toast 通知时出现异常: " + ex.Message);
             }
         };
     }
@@ -102,15 +118,21 @@ public partial class MainWindow : Window
         FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
         if (latestVersion != fileVersionInfo.FileVersion)
         {
-            new ToastContentBuilder()
-                .AddText("检测到有新版本")
-                .AddInlineImage(new Uri(
-                    "https://tse2-mm.cn.bing.net/th/id/OIP-C.iaaxjToOi5MTMuMFkxrhnAHaF2?rs=1&pid=ImgDetMain"))
-                .AddButton(new ToastButton()
-                    .SetContent("查看日志并更新")
-                    .AddArgument("action", "ConfirmUpdate")) // 传递参数
-                .AddButton(new ToastButtonDismiss("取消")) // 取消按钮
-                .Show();
+            try
+            {
+                new ToastContentBuilder()
+                    .AddText("检测到有新版本")
+                    .AddInlineImage(new Uri(FileUtil.当前文件目录 + "Assets/icons/安全.png"))
+                    .AddButton(new ToastButton()
+                        .SetContent("查看更新日志")
+                        .AddArgument("action", "ConfirmUpdate")) // 传递参数
+                    .AddButton(new ToastButtonDismiss("取消")) // 取消按钮
+                    .Show();
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("Toast 显示失败: " + e.Message);
+            }
         }
     }
 

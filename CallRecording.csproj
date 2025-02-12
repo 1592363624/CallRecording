@@ -14,10 +14,10 @@
     <Copyright>Shell</Copyright>
     <PackageProjectUrl>https://52shell.ltd</PackageProjectUrl>
     <RepositoryType>GitHub</RepositoryType>
-    <AssemblyVersion>3.1</AssemblyVersion>
-    <FileVersion>3.1</FileVersion>
+    <AssemblyVersion>3.2</AssemblyVersion>
+    <FileVersion>3.2</FileVersion>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
-    <Version>3.1.0</Version>
+    <Version>3.2.0</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

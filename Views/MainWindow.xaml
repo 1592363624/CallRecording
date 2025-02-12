@@ -163,54 +163,87 @@
                         </Grid>
                     </TabItem>
                     <TabItem Header="系统配置">
-                        <StackPanel
-                            Grid.Row="1"
-                            Margin="10"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Bottom"
-                            Orientation="Horizontal">
-                            <Button Command="{Binding ChooseSavePathCommand}" Content="选择保存路径" />
-                            <Button Command="{Binding ClearLogsCommand}" Content="清除日志" />
-                            <Button
-                                x:Name="adm"
-                                Content="添加监控窗口"
-                                PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown"
-                                PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp"
-                                PreviewMouseMove="adm_MouseMove"
-                                ToolTip="长按并拖动鼠标到其他窗口上自动添加目标窗口监控" />
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel
+                                Grid.Row="0"
+                                Margin="10"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom"
+                                Orientation="Horizontal">
+                                <Button Command="{Binding ChooseSavePathCommand}" Content="选择保存路径" />
+                                <Button Command="{Binding ClearLogsCommand}" Content="清除日志" />
+                                <Button
+                                    x:Name="adm"
+                                    Content="添加监控窗口"
+                                    PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown"
+                                    PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp"
+                                    PreviewMouseMove="adm_MouseMove"
+                                    ToolTip="长按并拖动鼠标到其他窗口上自动添加目标窗口监控" />
 
-                            <CheckBox
-                                x:Name="kjzq"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                Command="{Binding StartupCommand}"
-                                Content="开机自启  " />
+                                <CheckBox
+                                    x:Name="kjzq"
+                                    Margin="10,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Command="{Binding StartupCommand}"
+                                    Content="开机自启  " />
 
-                            <CheckBox
-                                x:Name="ysms"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                Command="{Binding StealthCommand}"
-                                Content="隐身模式  "
-                                ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。" />
+                                <CheckBox
+                                    x:Name="ysms"
+                                    Margin="10,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Command="{Binding StealthCommand}"
+                                    Content="隐身模式  "
+                                    ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。" />
 
-                            <ComboBox
-                                x:Name="cb_AudioFormats"
-                                ItemsSource="{Binding AudioFormats}"
-                                SelectedItem="{Binding SelectedFormat}"
-                                SelectionChanged="Cb_AudioFormats_OnSelectionChanged"
-                                ToolTip="★推荐★MP3格式文件小(不过录制音频效果也已经优化的其实还不错),WAV格式无损音频(文件大)">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </StackPanel>
+                                <ComboBox
+                                    x:Name="cb_AudioFormats"
+                                    ItemsSource="{Binding AudioFormats}"
+                                    SelectedItem="{Binding SelectedFormat}"
+                                    SelectionChanged="Cb_AudioFormats_OnSelectionChanged"
+                                    ToolTip="★推荐★MP3格式文件小(不过录制音频效果也已经优化的其实还不错),WAV格式无损音频(文件大)">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            <Grid Grid.Row="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                           Text="正在监控的窗口类名:">
+                                </TextBlock>
+                                <TextBox Grid.Row="1" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                         Text="{Binding Cn}">
+                                </TextBox>
+                                <TextBlock Grid.Row="2" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                           Text="正在监控的窗口进程名:">
+                                </TextBlock>
+                                <TextBox Grid.Row="3" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                         Text="{Binding Pn}">
+                                </TextBox>
+                            </Grid>
+                        </Grid>
                     </TabItem>
 
                     <TabItem Header="系统公告">
                         <TextBlock x:Name="text_updateLog" Text="因为不强制显示更新公告了,就在这里预留个公告位置吧" />
+                    </TabItem>
+                    <TabItem Header="关于软件">
+                        <StackPanel>
+                            <TextBlock Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
+                            <TextBlock Text="问题反馈邮箱:1592363624@qq.com" />
+                        </StackPanel>
                     </TabItem>
                 </TabControl>
             </StackPanel>

@@ -1,11 +1,11 @@
 ﻿using System.Diagnostics;
-using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using CallRecording.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Configuration;
 using MySharedProject;
+using MySharedProject.Model;
 using MySharedProject.Model.MyAuth;
 
 namespace CallRecording;
@@ -31,13 +31,14 @@ public partial class App : Application
         //释放appsettings.json配置文件
         Utils.EnsureAppSettingsFile();
         //初始化配置文件&补充新增配置项
+        ConfigurationHelper.LoadConfiguration();
         Utils.InitAppsettings();
-
-        var builder = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", true, true);
-        Configuration = builder.Build();
-
+        Console.WriteLine("测试输出内容");
+        // var builder = new ConfigurationBuilder()
+        //     // .SetBasePath(Directory.GetCurrentDirectory())    //根目录
+        //     .SetBasePath(Path.GetDirectoryName(DataSource.Configurationfilepath))  //固定配置项位置
+        //     .AddJsonFile("appsettings.json", true, true);
+        // Configuration = builder.Build();
 
         //可以屏蔽这段正常运行 因为是用的共享项目的代码
 

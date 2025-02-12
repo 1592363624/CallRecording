@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IWshRuntimeLibrary;
 using MySharedProject;
+using MySharedProject.Model;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using static CallRecording.Models.Recorder;
@@ -30,10 +31,11 @@ namespace CallRecording.ViewModels
         private NotifyIcon _notifyIcon;
         private Icon _recordingIcon;
 
-
         [ObservableProperty] private string _recordingSavePath;
         [ObservableProperty] public AudioFormat _selectedFormat;
         private WindowMonitor _windowMonitor;
+        [ObservableProperty] public string cn = "AudioWnd";
+        [ObservableProperty] public string pn = "WeChat";
 
         public MainViewModel()
         {
@@ -251,13 +253,13 @@ namespace CallRecording.ViewModels
             var targetClassNames = new List<string> { "AudioWnd" };
             var targetProcessNames = new List<string> { "WeChat" };
 
-            string cn = ConfigurationHelper.GetSetting("监控窗口类名");
-            string pn = ConfigurationHelper.GetSetting("监控窗口进程名");
+            Cn = ConfigurationHelper.GetSetting("监控窗口类名");
+            Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
 
-            if (!string.IsNullOrEmpty(cn) && !string.IsNullOrEmpty(pn))
+            if (!string.IsNullOrEmpty(Cn) && !string.IsNullOrEmpty(Pn))
             {
-                targetClassNames = cn.Split('|').ToList();
-                targetProcessNames = pn.Split('|').ToList();
+                targetClassNames = Cn.Split('|').ToList();
+                targetProcessNames = Pn.Split('|').ToList();
             }
 
             _windowMonitor = new WindowMonitor(targetClassNames, targetProcessNames);

@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using MySharedProject;
+using MySharedProject.Model;
 
 namespace CallRecording.Models
 {
@@ -136,9 +138,10 @@ namespace CallRecording.Models
         public static void EnsureAppSettingsFile()
         {
             // 获取当前应用程序执行目录
-            string appDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            // string appDirectory = AppDomain.CurrentDomain.BaseDirectory;
             // 确定 appsettings.json 路径
-            string appSettingsPath = Path.Combine(appDirectory, AppSettingsFileName);
+            // string appSettingsPath = Path.Combine(appDirectory, AppSettingsFileName);   //软件根目录
+            string appSettingsPath = DataSource.Configurationfilepath; //"C:\\Shell\\CallRecording\\appsettings.json"
             // 判断文件是否存在
             if (File.Exists(appSettingsPath))
             {
@@ -168,6 +171,13 @@ namespace CallRecording.Models
                 if (resourceStream == null)
                 {
                     throw new FileNotFoundException("嵌入式资源 appsettings.json 未找到");
+                }
+
+                // 确保目录存在
+                string directoryPath = Path.GetDirectoryName(outputPath);
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
                 }
 
                 using (FileStream fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
@@ -248,12 +258,12 @@ namespace CallRecording.Models
 
             if (ConfigurationHelper.GetSetting("监控窗口类名") == null)
             {
-                ConfigurationHelper.SetSetting("监控窗口类名", "AudioWnd|测试");
+                ConfigurationHelper.SetSetting("监控窗口类名", "AudioWnd|要监控的窗口类名");
             }
 
             if (ConfigurationHelper.GetSetting("监控窗口进程名") == null)
             {
-                ConfigurationHelper.SetSetting("监控窗口进程名", "WeChat|测试");
+                ConfigurationHelper.SetSetting("监控窗口进程名", "WeChat|要监控的窗口进程名");
             }
         }
     }
