@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
+using System.Text;
 using MySharedProject;
 using MySharedProject.Model;
 
@@ -13,6 +15,17 @@ namespace CallRecording.Models
         public static string GetFormattedTime()
         {
             return DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        }
+
+        public static string DecodeBase64String(string base64EncodedData)
+        {
+            // 将Base64编码的字符串转换为字节流
+            byte[] base64EncodedBytes = Convert.FromBase64String(base64EncodedData);
+
+            // 将字节流解码为字符串
+            string decodedString = Encoding.UTF8.GetString(base64EncodedBytes);
+
+            return decodedString;
         }
 
         public static string GenerateFilename(string savePath, string softwareName, string extension)
@@ -142,7 +155,7 @@ namespace CallRecording.Models
             // 确定 appsettings.json 路径
             // string appSettingsPath = Path.Combine(appDirectory, AppSettingsFileName);   //软件根目录
             string appSettingsPath = DataSource.Configurationfilepath; //"C:\\Shell\\CallRecording\\appsettings.json"
-            // 判断文件是否存在
+            // 判断配置文件是否存在
             if (File.Exists(appSettingsPath))
             {
                 Debug.WriteLine("appsettings.json 文件已存在");
@@ -152,6 +165,13 @@ namespace CallRecording.Models
                 Debug.WriteLine("appsettings.json 文件不存在，开始释放");
                 // 文件不存在，从嵌入资源释放
                 ReleaseEmbeddedAppSettingsFile(appSettingsPath);
+            }
+
+            // 确保下载缓存目录存在
+            string directoryPath = Path.GetDirectoryName("C:\\Shell\\Download");
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
             }
         }
 
@@ -189,81 +209,205 @@ namespace CallRecording.Models
             Debug.WriteLine("appsettings.json 文件已释放到 " + outputPath);
         }
 
+
+        /// <summary>
+        /// 解压缩zip文件
+        /// </summary>
+        /// <param name="zipFilePath"></param>
+        /// <param name="destinationFolder"></param>
+        public static void UnzipFile(string zipFilePath, string destinationFolder)
+        {
+            try
+            {
+                // 确保目标目录存在，如果不存在则创建
+                if (!Directory.Exists(destinationFolder))
+                {
+                    Directory.CreateDirectory(destinationFolder);
+                }
+
+                // 使用 ZipFile 解压文件
+                ZipFile.ExtractToDirectory(zipFilePath, destinationFolder);
+                Console.WriteLine($"文件解压缩成功，解压至 {destinationFolder}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"解压缩过程中发生错误: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 用于释放更新文件的脚本
+        /// </summary>
+        public static void UnzipBat()
+        {
+            // 获取当前应用程序路径（自动处理路径格式）
+            string appPath = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
+
+            // 定义.bat文件路径
+            string batFilePath = Path.Combine(appPath, "temp_script.bat");
+
+            try
+            {
+                // 原始批处理模板
+                string batContent = @"@echo off
+setlocal enabledelayedexpansion
+
+REM 提权并隐藏窗口
+NET SESSION >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    echo Set UAC = CreateObject^(""Shell.Application""^) > ""%temp%\Elevate.vbs""
+    echo UAC.ShellExecute ""%~f0"", """", """", ""runas"", 0 >> ""%temp%\Elevate.vbs""
+    cscript //nologo ""%temp%\Elevate.vbs"" & del ""%temp%\Elevate.vbs""
+    exit /b
+)
+
+REM ################ 核心逻辑 ################
+REM 强制设置目标路径为当前脚本所在目录
+set ""TargetDir=%~dp0""
+set ""TargetDir=%TargetDir:\=/%""
+set ""TargetDir=%TargetDir:/=\%""
+if ""%TargetDir:~-1%""=="""" set ""TargetDir=%TargetDir:~0,-1%""
+REM ##########################################
+
+REM 结束进程
+tasklist /FI ""IMAGENAME eq CallRecording.exe"" 2>NUL | find /I ""CallRecording.exe"" >NUL && taskkill /F /IM ""CallRecording.exe""
+
+REM 解压固定路径的ZIP
+powershell -Command ""Expand-Archive -Path 'C:\Shell\Download\CallRecording.zip' -DestinationPath '%TargetDir%' -Force""
+
+REM 清理固定路径的ZIP
+del /F /Q ""C:\Shell\Download\CallRecording.zip"" >nul 2>&1
+
+REM 启动程序
+start """" /D ""%TargetDir%"" CallRecording.exe
+
+REM 自删除
+start """" /B cmd /c ""timeout /t 1 /nobreak >nul & del /F /Q ""%~f0""""
+exit
+";
+
+                // 仅替换目标路径为当前程序目录
+                batContent = batContent.Replace("set \"TargetDir=%~dp0\"", $"set \"TargetDir={appPath}\"");
+
+                File.WriteAllText(batFilePath, batContent);
+
+                // 静默运行批处理
+                using (Process process = new Process())
+                {
+                    process.StartInfo = new ProcessStartInfo
+                    {
+                        FileName = batFilePath,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+                    process.Start();
+                    process.WaitForExit();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"操作失败: {ex}");
+            }
+            finally
+            {
+                if (File.Exists(batFilePath))
+                {
+                    try
+                    {
+                        File.Delete(batFilePath);
+                    }
+                    catch
+                    {
+                        /* 忽略清理失败 */
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 初始化appsettings.json设置官方认定的默认值
+        /// </summary>
         public static void InitAppsettings()
         {
-            if (ConfigurationHelper.GetSetting("OutputDirectory") == null)
+            if (ConfigurationHelper.GetSetting("OutputDirectory") == "NULL")
             {
                 ConfigurationHelper.SetSetting("OutputDirectory", "微信通话录音文件/");
             }
 
-            if (ConfigurationHelper.GetSetting("Device_info") == null)
+            if (ConfigurationHelper.GetSetting("Device_info") == "NULL")
             {
-                ConfigurationHelper.SetSetting("Device_info", "null");
+                ConfigurationHelper.SetSetting("Device_info", "NULL");
             }
 
-            if (ConfigurationHelper.GetSetting("Device_code") == null)
+            if (ConfigurationHelper.GetSetting("Device_code") == "NULL")
             {
-                ConfigurationHelper.SetSetting("Device_code", "null");
+                ConfigurationHelper.SetSetting("Device_code", "NULL");
             }
 
-            if (ConfigurationHelper.GetSetting("ComputerUserName") == null)
+            if (ConfigurationHelper.GetSetting("ComputerUserName") == "NULL")
             {
-                ConfigurationHelper.SetSetting("ComputerUserName", "null");
+                ConfigurationHelper.SetSetting("ComputerUserName", "NULL");
             }
 
-            if (ConfigurationHelper.GetSetting("User") == null)
+            if (ConfigurationHelper.GetSetting("User") == "NULL")
             {
-                ConfigurationHelper.SetSetting("User", "null");
+                ConfigurationHelper.SetSetting("User", "NULL");
             }
 
-            if (ConfigurationHelper.GetSetting("Is_Rge") == null)
+            if (ConfigurationHelper.GetSetting("Is_Rge") == "NULL")
             {
                 ConfigurationHelper.SetSetting("Is_Rge", "N");
             }
 
-            if (ConfigurationHelper.GetSetting("是否开机自启") == null)
+            if (ConfigurationHelper.GetSetting("是否开机自启") == "NULL")
             {
                 ConfigurationHelper.SetSetting("是否开机自启", "True");
             }
 
-            if (ConfigurationHelper.GetSetting("是否隐身模式启动") == null)
+            if (ConfigurationHelper.GetSetting("是否隐身模式启动") == "NULL")
             {
                 ConfigurationHelper.SetSetting("是否隐身模式启动", "False");
             }
 
-            if (ConfigurationHelper.GetSetting("音频采样率") == null)
+            if (ConfigurationHelper.GetSetting("音频采样率") == "NULL")
             {
                 ConfigurationHelper.SetSetting("音频采样率", "48000");
             }
 
-            if (ConfigurationHelper.GetSetting("声道数") == null)
+            if (ConfigurationHelper.GetSetting("声道数") == "NULL")
             {
                 ConfigurationHelper.SetSetting("声道数", "2");
             }
 
-            if (ConfigurationHelper.GetSetting("音频格式") == null)
+            if (ConfigurationHelper.GetSetting("音频格式") == "NULL")
             {
                 ConfigurationHelper.SetSetting("音频格式", "MP3");
             }
 
-            if (ConfigurationHelper.GetSetting("启动软件次数") == null)
+            if (ConfigurationHelper.GetSetting("启动软件次数") == "NULL")
             {
                 ConfigurationHelper.SetSetting("启动软件次数", "0");
             }
 
-            if (ConfigurationHelper.GetSetting("监控通话次数") == null)
+            if (ConfigurationHelper.GetSetting("监控通话次数") == "NULL")
             {
                 ConfigurationHelper.SetSetting("监控通话次数", "0");
             }
 
-            if (ConfigurationHelper.GetSetting("监控窗口类名") == null)
+            if (ConfigurationHelper.GetSetting("监控窗口类名") == "NULL")
             {
                 ConfigurationHelper.SetSetting("监控窗口类名", "AudioWnd|要监控的窗口类名");
             }
 
-            if (ConfigurationHelper.GetSetting("监控窗口进程名") == null)
+            if (ConfigurationHelper.GetSetting("监控窗口进程名") == "NULL")
             {
                 ConfigurationHelper.SetSetting("监控窗口进程名", "WeChat|要监控的窗口进程名");
+            }
+
+            if (ConfigurationHelper.GetSetting("上次执行检测更新时间") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("上次执行检测更新时间", "2025-3-5 15:38:14");
             }
         }
     }

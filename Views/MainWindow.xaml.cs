@@ -1,15 +1,19 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using CallRecording.Models;
 using CallRecording.ViewModels;
 using Microsoft.Toolkit.Uwp.Notifications;
 using MySharedProject;
 using MySharedProject.Model;
+using MySharedProject.Model.Download;
 using MySharedProject.Model.MyAuth;
 using MySharedProject.Utiles;
 using Control = System.Windows.Forms.Control;
@@ -19,9 +23,10 @@ namespace CallRecording.Views;
 
 public partial class MainWindow : Window
 {
+    private readonly Logger _logger;
+    private readonly ObservableCollection<string> _logs;
     bool 是否点击通知更新的确认按钮 = false;
     private bool isDragging = false;
-
 
     string msg = "";
 
@@ -29,6 +34,12 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         CheckUpdate();
+
+        // 初始化日志集合
+        _logs = new ObservableCollection<string>();
+
+        // 创建 Logger 实例并传递日志集合
+        _logger = new Logger(_logs);
 
         WindowState = WindowState.Minimized;
 
@@ -122,17 +133,63 @@ public partial class MainWindow : Window
             {
                 new ToastContentBuilder()
                     .AddText("检测到有新版本")
-                    .AddInlineImage(new Uri(FileUtil.当前文件目录 + "Assets/icons/安全.png"))
+                    // .AddInlineImage(new Uri(FileUtil.当前文件目录 + "Assets/icons/安全.png"))
                     .AddButton(new ToastButton()
                         .SetContent("查看更新日志")
                         .AddArgument("action", "ConfirmUpdate")) // 传递参数
                     .AddButton(new ToastButtonDismiss("取消")) // 取消按钮
                     .Show();
+
+                //开始下载更新文件
+                StartUpdata();
             }
             catch (Exception e)
             {
                 Debug.WriteLine("Toast 显示失败: " + e.Message);
             }
+        }
+    }
+
+    public async Task StartUpdata()
+    {
+        string updata = ConfigurationHelper.GetSetting("上次执行检测更新时间");
+        //当前系统时间和上次执行检测更新时间比较
+        if (DateTime.Now.Subtract(DateTime.Parse(updata)).TotalHours >= 1)
+        {
+            // 更新时间已超过1小时，执行更新操作
+            ConfigurationHelper.SetSetting("上次检测更新时间", DateTime.Now.ToString());
+        }
+        else
+        {
+            // 更新时间未超过1小时，不执行更新操作
+            _logger.LogMessage("检测更新时间未超过1小时，本次不执行更新操作", "系统消息");
+            return;
+        }
+
+        //删除原有的从新下载
+        if (File.Exists(@"C:\Shell\Download\CallRecording.zip"))
+        {
+            // 存在则删除
+            File.Delete(@"C:\Shell\Download\CallRecording.zip");
+            Debug.WriteLine("已删除文件C:\\Shell\\Download\\CallRecording.zip");
+        }
+
+        //开始下载
+        await StarDownload.StarDown(Soft.getMsg("更新JSON数据"));
+        await CheckFileCallRecording();
+    }
+
+    //检查是否存在文件C:\Shell\Download\CallRecording.zip
+    public async Task CheckFileCallRecording()
+    {
+        if (File.Exists(@"C:\Shell\Download\CallRecording.zip"))
+        {
+            // 存在则执行脚本
+            Utils.UnzipBat();
+        }
+        else
+        {
+            Debug.WriteLine("未检测到文件C:\\Shell\\Download\\CallRecording.zip，跳过执行更新脚本");
         }
     }
 
