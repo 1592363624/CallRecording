@@ -5,60 +5,48 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:CallRecording.Converters"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    Style="{StaticResource MaterialDesignWindow}"
     Title="通话录音助手"
-    Width="600"
-    Height="450"
+    Width="650"
+    Height="550"
     Background="#F0F0F0"
+    FontFamily="Microsoft YaHei"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
 
-
     <Window.Resources>
         <local:DoubleToThicknessConverter x:Key="DoubleToThicknessConverter" />
-        <Style TargetType="Button">
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="Padding" Value="10,5" />
-            <Setter Property="Margin" Value="10,0" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Background" Value="#007ACC" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#005A9E" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect
-                        BlurRadius="5"
-                        ShadowDepth="3"
-                        Color="Gray" />
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid>
-                            <Border
-                                x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="5">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#005A9E" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#003F6B" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+
+        <Style x:Key="HorizontalExpanderContentTextBlock" TargetType="{x:Type TextBlock}">
+            <Setter Property="Opacity" Value=".68" />
+            <Setter Property="Text"
+                    Value="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="VerticalExpanderContentTextBlock"
+               TargetType="{x:Type TextBlock}"
+               BasedOn="{StaticResource HorizontalExpanderContentTextBlock}">
+            <Setter Property="MaxWidth" Value="180" />
+        </Style>
+
+        <Style x:Key="HorizontalDividerBorder" TargetType="{x:Type Border}">
+            <Setter Property="Background" Value="{DynamicResource MaterialDesignDivider}" />
+            <Setter Property="Height" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+        </Style>
+
+        <Style x:Key="VerticalDividerBorder"
+               TargetType="{x:Type Border}"
+               BasedOn="{StaticResource HorizontalDividerBorder}">
+            <Setter Property="Height" Value="Auto" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="Width" Value="1" />
         </Style>
     </Window.Resources>
+
 
     <Grid>
         <Grid.RowDefinitions>
@@ -81,172 +69,201 @@
 
 
         <!--  新增扩展区域  -->
-        <Expander
-            Grid.Row="2"
-            Margin="10,5,10,5"
-            Header="系统配置信息"
-            IsExpanded="True">
-            <StackPanel>
-                <TabControl>
-                    <TabItem Header="信息栏">
-                        <Grid x:Name="Bottom_information_bar">
-                            <!--  在线状态标识  -->
-                            <Ellipse
-                                x:Name="Onlineidentification"
-                                Width="15"
-                                Height="15"
-                                Margin="0,0,0,0"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom"
-                                Fill="{Binding OnlineStatusColor}"
-                                ToolTip="{Binding OnlineStatusToolTip}" />
+        <StackPanel Grid.Row="2">
+            <Expander
+                ExpandDirection="Down"
+                HorizontalAlignment="Stretch"
+                materialDesign:ExpanderAssist.HorizontalHeaderPadding="35,2,24,2"
+                Grid.Row="2"
+                Margin="10,5,10,5"
+                Header="系统配置信息"
+                IsExpanded="True">
+                <StackPanel Orientation="Vertical">
+                    <TabControl>
+                        <TabItem Header="信息栏">
+                            <Grid x:Name="Bottom_information_bar">
+                                <!--  在线状态标识  -->
+                                <Ellipse
+                                    x:Name="Onlineidentification"
+                                    Width="15"
+                                    Height="15"
+                                    Margin="0,0,0,0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Fill="{Binding OnlineStatusColor}"
+                                    ToolTip="{Binding OnlineStatusToolTip}" />
 
-                            <!--  文件大小和磁盘占比信息  -->
-                            <StackPanel
-                                x:Name="Diskoccupancyinformation"
-                                Grid.Row="1"
-                                Width="{Binding Wt}"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Center">
-
-                                <!--  显示总容量、可用空间、已用空间、录音文件占用空间  -->
-                                <TextBlock Margin="1" Text="{Binding TotalSizeFM, StringFormat='磁盘总空间: {0} '}" />
-                                <TextBlock Margin="1"
-                                           Text="{Binding AvailableFreeSpaceFM, StringFormat='磁盘可用空间: {0} '}" />
-                                <TextBlock Margin="1" Text="{Binding UsedSpaceFM, StringFormat='磁盘已用空间: {0} '}" />
-                                <TextBlock Margin="1" Text="{Binding IusedSpaceFM, StringFormat='录音文件占用空间: {0} '}" />
-
-                                <!--  柱状图展示四个变量的比例  -->
-                                <Grid
+                                <!--  文件大小和磁盘占比信息  -->
+                                <StackPanel
+                                    x:Name="Diskoccupancyinformation"
+                                    Grid.Row="1"
                                     Width="{Binding Wt}"
-                                    Height="20"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center">
-                                    <!--  已用空间部分  -->
-                                    <Rectangle
-                                        Width="{Binding UsedSpaceProportion}"
-                                        HorizontalAlignment="Left"
-                                        Fill="Red" />
 
-                                    <!--  可用空间部分  -->
-                                    <Rectangle
-                                        Width="{Binding AvailableFreeSpaceProportion}"
-                                        Margin="{Binding UsedSpaceProportion, Converter={StaticResource DoubleToThicknessConverter}}"
-                                        HorizontalAlignment="Left"
-                                        Fill="Green" />
+                                    <!--  显示总容量、可用空间、已用空间、录音文件占用空间  -->
+                                    <TextBlock Margin="1" Text="{Binding TotalSizeFM, StringFormat='磁盘总空间: {0} '}" />
+                                    <TextBlock Margin="1"
+                                               Text="{Binding AvailableFreeSpaceFM, StringFormat='磁盘可用空间: {0} '}" />
+                                    <TextBlock Margin="1" Text="{Binding UsedSpaceFM, StringFormat='磁盘已用空间: {0} '}" />
+                                    <TextBlock Margin="1" Text="{Binding IusedSpaceFM, StringFormat='录音文件占用空间: {0} '}" />
 
-                                    <!--  录音文件占用空间部分  -->
-                                    <Rectangle
-                                        Width="{Binding IusedSpaceProportion}"
-                                        Margin="{Binding TotalUsedProportion, Converter={StaticResource DoubleToThicknessConverter}}"
+                                    <!--  柱状图展示四个变量的比例  -->
+                                    <Grid
+                                        Width="{Binding Wt}"
+                                        Height="20"
                                         HorizontalAlignment="Left"
-                                        Fill="Blue" />
-                                </Grid>
+                                        VerticalAlignment="Center">
+                                        <!--  已用空间部分  -->
+                                        <Rectangle
+                                            Width="{Binding UsedSpaceProportion}"
+                                            HorizontalAlignment="Left"
+                                            Fill="Red" />
 
-                                <!--  颜色说明  -->
-                                <StackPanel Margin="5" Orientation="Horizontal">
-                                    <TextBlock
-                                        Margin="5"
-                                        Foreground="Red"
-                                        Text="已用空间" />
-                                    <TextBlock
-                                        Margin="5"
-                                        Foreground="Green"
-                                        Text="可用空间" />
-                                    <TextBlock
-                                        Margin="5"
-                                        Foreground="Blue"
-                                        Text="录音文件占用空间" />
+                                        <!--  可用空间部分  -->
+                                        <Rectangle
+                                            Width="{Binding AvailableFreeSpaceProportion}"
+                                            Margin="{Binding UsedSpaceProportion, Converter={StaticResource DoubleToThicknessConverter}}"
+                                            HorizontalAlignment="Left"
+                                            Fill="Green" />
+
+                                        <!--  录音文件占用空间部分  -->
+                                        <Rectangle
+                                            Width="{Binding IusedSpaceProportion}"
+                                            Margin="{Binding TotalUsedProportion, Converter={StaticResource DoubleToThicknessConverter}}"
+                                            HorizontalAlignment="Left"
+                                            Fill="Blue" />
+                                    </Grid>
+
+                                    <!--  颜色说明  -->
+                                    <StackPanel Margin="5" Orientation="Horizontal">
+                                        <TextBlock
+                                            Margin="5"
+                                            Foreground="Red"
+                                            Text="已用空间" />
+                                        <TextBlock
+                                            Margin="5"
+                                            Foreground="Green"
+                                            Text="可用空间" />
+                                        <TextBlock
+                                            Margin="5"
+                                            Foreground="Blue"
+                                            Text="录音文件占用空间" />
+                                    </StackPanel>
                                 </StackPanel>
-                            </StackPanel>
 
-                        </Grid>
-                    </TabItem>
-                    <TabItem Header="系统配置">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <StackPanel
-                                Grid.Row="0"
-                                Margin="10"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Bottom"
-                                Orientation="Horizontal">
-                                <Button Command="{Binding ChooseSavePathCommand}" Content="选择保存路径" />
-                                <Button Command="{Binding ClearLogsCommand}" Content="清除日志" />
-                                <Button
-                                    x:Name="adm"
-                                    Content="添加监控窗口"
-                                    PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown"
-                                    PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp"
-                                    PreviewMouseMove="adm_MouseMove"
-                                    ToolTip="长按并拖动鼠标到其他窗口上自动添加目标窗口监控" />
-
-                                <CheckBox
-                                    x:Name="kjzq"
-                                    Margin="10,0,0,0"
-                                    VerticalAlignment="Center"
-                                    Command="{Binding StartupCommand}"
-                                    Content="开机自启  " />
-
-                                <CheckBox
-                                    x:Name="ysms"
-                                    Margin="10,0,0,0"
-                                    VerticalAlignment="Center"
-                                    Command="{Binding StealthCommand}"
-                                    Content="隐身模式  "
-                                    ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。" />
-
-                                <ComboBox
-                                    x:Name="cb_AudioFormats"
-                                    ItemsSource="{Binding AudioFormats}"
-                                    SelectedItem="{Binding SelectedFormat}"
-                                    SelectionChanged="Cb_AudioFormats_OnSelectionChanged"
-                                    ToolTip="★推荐★MP3格式文件小(不过录制音频效果也已经优化的其实还不错),WAV格式无损音频(文件大)">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" />
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                            </StackPanel>
-                            <Grid Grid.Row="1">
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="系统配置">
+                            <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                           Text="正在监控的窗口类名:">
-                                </TextBlock>
-                                <TextBox Grid.Row="1" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                         Text="{Binding Cn}">
-                                </TextBox>
-                                <TextBlock Grid.Row="2" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                           Text="正在监控的窗口进程名:">
-                                </TextBlock>
-                                <TextBox Grid.Row="3" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                         Text="{Binding Pn}">
-                                </TextBox>
-                            </Grid>
-                        </Grid>
-                    </TabItem>
+                                <StackPanel
+                                    Grid.Row="0"
+                                    Margin="10"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Bottom"
+                                    Orientation="Horizontal">
+                                    <Button Margin="0,0,10,0" Command="{Binding ChooseSavePathCommand}"
+                                            Content="选择保存路径" />
+                                    <Button Margin="0,0,10,0" Command="{Binding ClearLogsCommand}" Content="清除日志" />
+                                    <Button
+                                        x:Name="adm"
+                                        Content="添加监控窗口"
+                                        PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown"
+                                        PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp"
+                                        PreviewMouseMove="adm_MouseMove"
+                                        ToolTip="长按并拖动鼠标到其他窗口上自动添加目标窗口监控（目前没有动画效果！可能需要重启软件生效）" />
 
-                    <TabItem Header="系统公告">
-                        <TextBlock x:Name="text_updateLog" Text="因为不强制显示更新公告了,就在这里预留个公告位置吧" />
-                    </TabItem>
-                    <TabItem Header="关于软件">
-                        <StackPanel>
-                            <TextBlock Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
-                            <TextBlock Text="问题反馈邮箱:1592363624@qq.com" />
-                        </StackPanel>
-                    </TabItem>
-                </TabControl>
-            </StackPanel>
-        </Expander>
+                                    <CheckBox
+                                        x:Name="kjzq"
+                                        Margin="10,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding StartupCommand}"
+                                        Content="开机自启  " />
+
+                                    <CheckBox
+                                        x:Name="ysms"
+                                        Margin="10,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding StealthCommand}"
+                                        Content="隐身模式  "
+                                        ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。" />
+
+                                    <ComboBox
+                                        x:Name="cb_AudioFormats"
+                                        ItemsSource="{Binding AudioFormats}"
+                                        SelectedItem="{Binding SelectedFormat}"
+                                        SelectionChanged="Cb_AudioFormats_OnSelectionChanged"
+                                        ToolTip="★推荐★MP3格式文件小(不过录制音频效果也已经优化的其实还不错),WAV格式无损音频(文件大)">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                                <Grid Grid.Row="1" x:Name="Grid_CP">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                               Text="正在监控的窗口类名:">
+                                    </TextBlock>
+                                    <TextBox x:Name="TextBox_Cn" TextChanged="TextBox_Cn_OnTextChanged" Grid.Row="1"
+                                             TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                             Text="{Binding Cn}">
+                                    </TextBox>
+                                    <TextBlock Grid.Row="2" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                               Text="正在监控的窗口进程名:">
+                                    </TextBlock>
+                                    <TextBox x:Name="TextBox_Pn" TextChanged="TextBox_Pn_OnTextChanged" Grid.Row="3"
+                                             TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                             Text="{Binding Pn}">
+                                    </TextBox>
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem Header="系统公告">
+                            <TextBlock x:Name="text_updateLog" Text="因为不强制显示更新公告了,就在这里预留个公告位置吧" />
+                        </TabItem>
+                        <TabItem Header="关于软件">
+                            <StackPanel>
+                                <TextBlock FontSize="20" Foreground="Red" Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
+                                <TextBlock FontSize="20" Foreground="Blue" Text="问题反馈邮箱:1592363624@qq.com" />
+                            </StackPanel>
+                        </TabItem>
+                    </TabControl>
+                </StackPanel>
+            </Expander>
+        </StackPanel>
+
+        <Canvas Grid.Row="0" x:Name="DragFeedbackLayer" IsHitTestVisible="False" />
+
+        <!-- 测试 -->
+        <StackPanel Grid.Row="0" Visibility="Hidden">
+            <Expander
+                HorizontalAlignment="Stretch"
+                materialDesign:ExpanderAssist.HorizontalHeaderPadding="35,2,24,2"
+                Header="">
+                <StackPanel
+                    Margin="24,8,24,16"
+                    Orientation="Vertical"
+                    TextBlock.Foreground="{DynamicResource MaterialDesignBody}">
+                    <!-- <TextBlock -->
+                    <!--     Text="测试" /> -->
+                    <!-- <TextBlock -->
+                    <!--     Style="{StaticResource HorizontalExpanderContentTextBlock}" /> -->
+                </StackPanel>
+            </Expander>
+        </StackPanel>
+        <!-- 测试 -->
     </Grid>
 </Window>

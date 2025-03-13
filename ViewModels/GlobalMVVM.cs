@@ -12,9 +12,12 @@ namespace CallRecording.ViewModels
 
         [ObservableProperty] public string availableFreeSpaceFM;
 
+        [ObservableProperty] public string cn;
+
         [ObservableProperty] public long iusedSpace;
 
         [ObservableProperty] public string iusedSpaceFM;
+        [ObservableProperty] public string pn;
 
         [ObservableProperty] public long totalSize;
 
@@ -23,7 +26,6 @@ namespace CallRecording.ViewModels
         [ObservableProperty] public long usedSpace;
 
         [ObservableProperty] public string usedSpaceFM;
-
 
         [ObservableProperty] public int wt = 500;
 

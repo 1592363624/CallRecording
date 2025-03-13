@@ -8,6 +8,8 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using CallRecording.Models;
 using CallRecording.ViewModels;
 using Microsoft.Toolkit.Uwp.Notifications;
@@ -23,23 +25,19 @@ namespace CallRecording.Views;
 
 public partial class MainWindow : Window
 {
-    private readonly Logger _logger;
     private readonly ObservableCollection<string> _logs;
     bool 是否点击通知更新的确认按钮 = false;
+    GlobalMVVM gmvvm = new GlobalMVVM();
     private bool isDragging = false;
+
 
     string msg = "";
 
     public MainWindow()
     {
         InitializeComponent();
+
         CheckUpdate();
-
-        // 初始化日志集合
-        _logs = new ObservableCollection<string>();
-
-        // 创建 Logger 实例并传递日志集合
-        _logger = new Logger(_logs);
 
         WindowState = WindowState.Minimized;
 
@@ -54,6 +52,9 @@ public partial class MainWindow : Window
             //Bottom_information_bar.DataContext = app;
             Onlineidentification.DataContext = app;
             Diskoccupancyinformation.DataContext = DataSource.gbmvvm;
+            gmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
+            gmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
+            Grid_CP.DataContext = gmvvm;
             DataContext = mainViewModel;
 
             //初始化默认数据
@@ -127,6 +128,7 @@ public partial class MainWindow : Window
         text_updateLog.Text = "\n" + UpdateLog + "\n";
         Assembly assembly = Assembly.GetExecutingAssembly();
         FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+
         if (latestVersion != fileVersionInfo.FileVersion)
         {
             try
@@ -162,7 +164,6 @@ public partial class MainWindow : Window
         else
         {
             // 更新时间未超过1小时，不执行更新操作
-            _logger.LogMessage("检测更新时间未超过1小时，本次不执行更新操作", "系统消息");
             return;
         }
 
@@ -248,6 +249,9 @@ public partial class MainWindow : Window
             ConfigurationHelper.SetSetting("监控窗口类名", ConfigurationHelper.GetSetting("监控窗口类名") + "|" + className);
             ConfigurationHelper.SetSetting("监控窗口进程名",
                 ConfigurationHelper.GetSetting("监控窗口进程名") + "|" + process.ProcessName);
+
+            gmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
+            gmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
         }
     }
 
@@ -255,7 +259,21 @@ public partial class MainWindow : Window
     {
         if (isDragging && e.LeftButton == MouseButtonState.Pressed)
         {
-            Debug.WriteLine("正在拖动...");
+            // 清除旧标记
+            DragFeedbackLayer.Children.Clear();
+
+            // 创建新标记
+            var pos = e.GetPosition(DragFeedbackLayer);
+            var ellipse = new Ellipse
+            {
+                Width = 20,
+                Height = 20,
+                Stroke = Brushes.Orange,
+                StrokeThickness = 2
+            };
+            Canvas.SetLeft(ellipse, pos.X - 10);
+            Canvas.SetTop(ellipse, pos.Y - 10);
+            DragFeedbackLayer.Children.Add(ellipse);
         }
     }
 
@@ -274,5 +292,17 @@ public partial class MainWindow : Window
     private void Cb_AudioFormats_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         ConfigurationHelper.SetSetting("音频格式", cb_AudioFormats.SelectedItem.ToString());
+    }
+
+    private void TextBox_Cn_OnTextChanged(object sender, TextChangedEventArgs e)
+    {
+        gmvvm.Cn = TextBox_Cn.Text;
+        ConfigurationHelper.SetSetting("监控窗口类名", gmvvm.Cn);
+    }
+
+    private void TextBox_Pn_OnTextChanged(object sender, TextChangedEventArgs e)
+    {
+        gmvvm.Pn = TextBox_Pn.Text;
+        ConfigurationHelper.SetSetting("监控窗口进程名", gmvvm.Pn);
     }
 }

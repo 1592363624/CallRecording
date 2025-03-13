@@ -34,8 +34,6 @@ namespace CallRecording.ViewModels
         [ObservableProperty] private string _recordingSavePath;
         [ObservableProperty] public AudioFormat _selectedFormat;
         private WindowMonitor _windowMonitor;
-        [ObservableProperty] public string cn = "AudioWnd";
-        [ObservableProperty] public string pn = "WeChat";
 
         public MainViewModel()
         {
@@ -96,6 +94,7 @@ namespace CallRecording.ViewModels
             InitializeWindowMonitor();
             Utils.软件启动次数add();
             _logger.LogMessage($"欢迎使用通话录音助手( ＾∀＾）／欢迎＼( ＾∀＾）", "通知");
+
 
             // 创建 Recorder 实例
             _recorder = new Recorder(_logger, _selectedFormat);
@@ -250,16 +249,16 @@ namespace CallRecording.ViewModels
         // 初始化窗口监控
         private void InitializeWindowMonitor()
         {
-            var targetClassNames = new List<string> { "AudioWnd" };
-            var targetProcessNames = new List<string> { "WeChat" };
+            var targetClassNames = new List<string> { "AudioWnd|WXworkWindow - 语音通话" };
+            var targetProcessNames = new List<string> { "WeChat|WXWork" };
+            GlobalMVVM gmvvm = new GlobalMVVM();
+            gmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
+            gmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
 
-            Cn = ConfigurationHelper.GetSetting("监控窗口类名");
-            Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
-
-            if (!string.IsNullOrEmpty(Cn) && !string.IsNullOrEmpty(Pn))
+            if (!string.IsNullOrEmpty(gmvvm.Cn) && !string.IsNullOrEmpty(gmvvm.Pn))
             {
-                targetClassNames = Cn.Split('|').ToList();
-                targetProcessNames = Pn.Split('|').ToList();
+                targetClassNames = gmvvm.Cn.Split('|').ToList();
+                targetProcessNames = gmvvm.Pn.Split('|').ToList();
             }
 
             _windowMonitor = new WindowMonitor(targetClassNames, targetProcessNames);
