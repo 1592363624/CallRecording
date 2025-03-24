@@ -18,6 +18,8 @@ using MySharedProject.Model;
 using MySharedProject.Model.Download;
 using MySharedProject.Model.MyAuth;
 using MySharedProject.Utiles;
+using MySharedProject.ViewModels.MyAuth;
+using Newtonsoft.Json;
 using Control = System.Windows.Forms.Control;
 using Point = System.Drawing.Point;
 
@@ -120,16 +122,23 @@ public partial class MainWindow : Window
     //检测更新
     private async Task CheckUpdate()
     {
-        //var client = new RestClient("https://gitee.com/Shell520/shell/raw/master/admin/通话录音助手");
-        //var request = new RestRequest("", Method.Get);
-        //RestResponse response = client.Execute<RestResponse>(request);
         string? latestVersion = Soft.GetNewVersion();
+        // string? latestVersion = Myauthsoft.CheckUpdate();
+        // 获取更新日志列表，并取第一个元素的版本号
+        var NewVersion = JsonConvert.DeserializeObject<ApiResponse>(latestVersion);
+        var latestVer = NewVersion?.result?.list?[0].ver;
+        var updType = NewVersion?.result?.list?[0].updType;
+        if (updType == "0")
+        {
+            latestVer = (int.Parse(latestVer) - 0.1).ToString();
+        }
+
         string? UpdateLog = Web.GetUpdateLog("2706a699-8246-4ffc-afb9-1d904e1dbe4f");
         text_updateLog.Text = "\n" + UpdateLog + "\n";
         Assembly assembly = Assembly.GetExecutingAssembly();
         FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
 
-        if (latestVersion != fileVersionInfo.FileVersion)
+        if (latestVer != fileVersionInfo.FileVersion)
         {
             try
             {
