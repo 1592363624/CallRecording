@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using System.Windows.Shapes;
 using CallRecording.Models;
 using CallRecording.ViewModels;
@@ -313,5 +314,15 @@ public partial class MainWindow : Window
     {
         gmvvm.Pn = TextBox_Pn.Text;
         ConfigurationHelper.SetSetting("监控窗口进程名", gmvvm.Pn);
+    }
+
+    private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        // 调用系统默认邮件客户端
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri)
+        {
+            UseShellExecute = true // 必须设置为 true（.NET Core/5+ 要求）
+        });
+        e.Handled = true; // 标记事件已处理
     }
 }

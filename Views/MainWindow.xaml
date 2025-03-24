@@ -237,7 +237,22 @@
                         <TabItem Header="关于软件">
                             <StackPanel>
                                 <TextBlock FontSize="20" Foreground="Red" Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
-                                <TextBlock FontSize="20" Foreground="Blue" Text="问题反馈邮箱:1592363624@qq.com" />
+                                <TextBlock FontSize="20" Foreground="Red">
+                                    <Run Text="去帖子支持作者:" />
+                                    <Hyperlink
+                                        NavigateUri="https://www.52pojie.cn/thread-1941879-1-1.html"
+                                        RequestNavigate="Hyperlink_RequestNavigate"
+                                        TextDecorations="{x:Null}">  <!-- 移除默认下划线 -->
+                                        52pojie.cn
+                                    </Hyperlink>
+                                </TextBlock>
+                                <TextBlock FontSize="20">
+                                    <Run Text="问题反馈邮箱:" Foreground="Blue" />
+                                    <Hyperlink NavigateUri="mailto:1592363624@qq.com"
+                                               RequestNavigate="Hyperlink_RequestNavigate">
+                                        1592363624@qq.com
+                                    </Hyperlink>
+                                </TextBlock>
                             </StackPanel>
                         </TabItem>
                     </TabControl>

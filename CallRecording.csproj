@@ -14,8 +14,8 @@
     <Copyright>Shell</Copyright>
     <PackageProjectUrl>https://52shell.ltd</PackageProjectUrl>
     <RepositoryType>GitHub</RepositoryType>
-    <AssemblyVersion>3.2</AssemblyVersion>
-    <FileVersion>3.2</FileVersion>
+      <AssemblyVersion>3.3</AssemblyVersion>
+      <FileVersion>3.3</FileVersion>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <Version>3.2.0</Version>
   </PropertyGroup>
@@ -76,6 +76,10 @@
       <EmbedInteropTypes>true</EmbedInteropTypes>
     </COMReference>
   </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="bin\Release\net8.0-windows\win-x64\publish\"/>
+    </ItemGroup>
 
   <Import Project="..\MySharedProject\MySharedProject.projitems" Label="Shared" />
 
