@@ -22,6 +22,7 @@ public partial class App : Application
 
     [ObservableProperty] private string onlineStatusToolTip = "离线";
 
+
     string? reftoken;
     public IConfiguration Configuration { get; private set; }
 

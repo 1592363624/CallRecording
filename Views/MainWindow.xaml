@@ -8,8 +8,8 @@
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     Style="{StaticResource MaterialDesignWindow}"
     Title="通话录音助手"
-    Width="650"
-    Height="550"
+    Width="700"
+    Height="650"
     Background="#F0F0F0"
     FontFamily="Microsoft YaHei"
     WindowStartupLocation="CenterScreen"
@@ -206,7 +206,18 @@
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
                                 </StackPanel>
-                                <Grid Grid.Row="1" x:Name="Grid_CP">
+
+                                <Grid Grid.Row="1" x:Name="MonitorLst">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                                HorizontalAlignment="Left">
+                                        <TextBlock Text="监控列表:" ToolTip="选择后需要重启软件生效" Margin="5"></TextBlock>
+                                        <CheckBox Content="微信" Margin="5" IsChecked="{Binding IsWeChatChecked}" />
+                                        <CheckBox Content="企业微信" Margin="5" IsChecked="{Binding IsWeChatWorkChecked}" />
+                                        <CheckBox Content="QQ" Margin="5" IsChecked="{Binding IsQQChecked}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid Grid.Row="2" x:Name="Grid_CP">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="*" />
                                         <RowDefinition Height="Auto" />
@@ -218,16 +229,17 @@
                                     </TextBlock>
                                     <TextBox x:Name="TextBox_Cn" TextChanged="TextBox_Cn_OnTextChanged" Grid.Row="1"
                                              TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                             Text="{Binding Cn}">
+                                             Text="{Binding Cn, UpdateSourceTrigger=PropertyChanged, TargetNullValue='绑定失败'}">
                                     </TextBox>
                                     <TextBlock Grid.Row="2" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
                                                Text="正在监控的窗口进程名:">
                                     </TextBlock>
                                     <TextBox x:Name="TextBox_Pn" TextChanged="TextBox_Pn_OnTextChanged" Grid.Row="3"
                                              TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                             Text="{Binding Pn}">
+                                             Text="{Binding Pn, UpdateSourceTrigger=PropertyChanged, TargetNullValue='绑定失败'}">
                                     </TextBox>
                                 </Grid>
+
                             </Grid>
                         </TabItem>
 

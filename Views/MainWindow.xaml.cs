@@ -54,7 +54,7 @@ public partial class MainWindow : Window
             // 设置主窗口的数据上下文
             //Bottom_information_bar.DataContext = app;
             Onlineidentification.DataContext = app;
-            Diskoccupancyinformation.DataContext = DataSource.gbmvvm;
+            Diskoccupancyinformation.DataContext = MonitorLst.DataContext = DataSource.gbmvvm;
             gmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
             gmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
             Grid_CP.DataContext = gmvvm;
@@ -66,6 +66,11 @@ public partial class MainWindow : Window
             bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
             kjzq.IsChecked = isStartupEnabled;
             ysms.IsChecked = isStealth;
+
+            //初始化监控选择框是否选中
+            gmvvm.IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat");
+            gmvvm.IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
+            gmvvm.IsQQChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("QQ");
         };
         // 订阅通知按钮事件
         ToastNotificationManagerCompat.OnActivated += toastArgs =>

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using CallRecording.Models;
@@ -12,12 +10,15 @@ namespace CallRecording.Services
         private readonly Logger _logger;
 
         // 定义WinEventProc回调函数委托
-        private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+        private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject,
+            int idChild, uint dwEventThread, uint dwmsEventTime);
+
         private WinEventDelegate procDelegate;
 
         // 导入SetWinEventHook函数
         [DllImport("user32.dll")]
-        private static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+        private static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc,
+            WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
 
         // 导入UnhookWinEvent函数
         [DllImport("user32.dll")]
@@ -52,10 +53,12 @@ namespace CallRecording.Services
             TargetClassNames = targetClassNames ?? new List<string>();
             TargetProcessNames = targetProcessNames ?? new List<string>();
             procDelegate = new WinEventDelegate(WinEventProc);
-            hWinEventHook = SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_DESTROY, IntPtr.Zero, procDelegate, 0, 0, WINEVENT_OUTOFCONTEXT);
+            hWinEventHook = SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_DESTROY, IntPtr.Zero, procDelegate, 0, 0,
+                WINEVENT_OUTOFCONTEXT);
         }
 
-        public void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+        public void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild,
+            uint dwEventThread, uint dwmsEventTime)
         {
             StringBuilder className = new StringBuilder(256);
             GetClassName(hwnd, className, className.Capacity);
@@ -80,14 +83,12 @@ namespace CallRecording.Services
             }
             catch (ArgumentException ex)
             {
-                //_logger.LogMessage($"(警告)无法获取进程名: {ex.Message}", "系统");
+                // _logger.LogMessage($"(警告)无法获取进程名: {ex.Message}", "系统");
             }
             catch (Exception ex)
             {
-                //_logger.LogMessage($"(警告)未知错误: {ex.Message}", "系统");
+                // _logger.LogMessage($"(警告)未知错误: {ex.Message}", "系统");
             }
-
-
         }
 
         public void Dispose()
