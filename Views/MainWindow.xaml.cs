@@ -123,42 +123,50 @@ public partial class MainWindow : Window
     //检测更新
     private async Task CheckUpdate()
     {
-        string? latestVersion = Soft.GetNewVersion();
-        // string? latestVersion = Myauthsoft.CheckUpdate();
-        // 获取更新日志列表，并取第一个元素的版本号
-        var NewVersion = JsonConvert.DeserializeObject<ApiResponse>(latestVersion);
-        var latestVer = NewVersion?.result?.list?[0].ver;
-        var updType = NewVersion?.result?.list?[0].updType;
-        if (updType == "0")
+        try
         {
-            latestVer = (int.Parse(latestVer) - 0.1).ToString();
+            string? latestVersion = Soft.GetNewVersion();
+            // string? latestVersion = Myauthsoft.CheckUpdate();
+            // 获取更新日志列表，并取第一个元素的版本号
+            var NewVersion = JsonConvert.DeserializeObject<ApiResponse>(latestVersion);
+            var latestVer = NewVersion?.result?.list?[0].ver;
+            var status = NewVersion?.result?.list?[0].status;
+            if (status == "0")
+            {
+                latestVer = (decimal.Parse(latestVer) - 0.1m).ToString();
+            }
+
+            string? UpdateLog = Web.GetUpdateLog(DataSource.Skey);
+            text_updateLog.Text = "\n" + UpdateLog + "\n";
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+
+            if (latestVer != fileVersionInfo.FileVersion)
+            {
+                try
+                {
+                    new ToastContentBuilder()
+                        .AddText("检测到有新版本")
+                        // .AddInlineImage(new Uri(FileUtil.当前文件目录 + "Assets/icons/安全.png"))
+                        .AddButton(new ToastButton()
+                            .SetContent("查看更新日志")
+                            .AddArgument("action", "ConfirmUpdate")) // 传递参数
+                        .AddButton(new ToastButtonDismiss("取消")) // 取消按钮
+                        .Show();
+
+                    //开始下载更新文件
+                    StartUpdata();
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine("Toast 显示失败: " + e.Message);
+                }
+            }
         }
-
-        string? UpdateLog = Web.GetUpdateLog("2706a699-8246-4ffc-afb9-1d904e1dbe4f");
-        text_updateLog.Text = "\n" + UpdateLog + "\n";
-        Assembly assembly = Assembly.GetExecutingAssembly();
-        FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-
-        if (latestVer != fileVersionInfo.FileVersion)
+        catch (Exception e)
         {
-            try
-            {
-                new ToastContentBuilder()
-                    .AddText("检测到有新版本")
-                    // .AddInlineImage(new Uri(FileUtil.当前文件目录 + "Assets/icons/安全.png"))
-                    .AddButton(new ToastButton()
-                        .SetContent("查看更新日志")
-                        .AddArgument("action", "ConfirmUpdate")) // 传递参数
-                    .AddButton(new ToastButtonDismiss("取消")) // 取消按钮
-                    .Show();
-
-                //开始下载更新文件
-                StartUpdata();
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine("Toast 显示失败: " + e.Message);
-            }
+            Debug.WriteLine(e);
+            throw;
         }
     }
 
@@ -169,11 +177,13 @@ public partial class MainWindow : Window
         if (DateTime.Now.Subtract(DateTime.Parse(updata)).TotalHours >= 1)
         {
             // 更新时间已超过1小时，执行更新操作
-            ConfigurationHelper.SetSetting("上次检测更新时间", DateTime.Now.ToString());
+            ConfigurationHelper.SetSetting("上次执行检测更新时间", DateTime.Now.ToString());
+            Debug.WriteLine("上次执行检测更新时间：" + updata + "，当前系统时间：" + DateTime.Now.ToString() + "，当前系统时间已超过1小时，执行更新操作");
         }
         else
         {
             // 更新时间未超过1小时，不执行更新操作
+            Debug.WriteLine("上次执行检测更新时间：" + updata + "，当前系统时间：" + DateTime.Now.ToString() + "，当前系统时间未超过1小时，不执行更新操作");
             return;
         }
 
@@ -187,6 +197,9 @@ public partial class MainWindow : Window
 
         //开始下载
         await StarDownload.StarDown(Soft.getMsg("更新JSON数据"));
+        new ToastContentBuilder()
+            .AddText("新版本准备完毕,准备开始自更新")
+            .Show();
         await CheckFileCallRecording();
     }
 

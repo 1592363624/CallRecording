@@ -241,25 +241,18 @@ namespace CallRecording.Models
         public static void UnzipBat()
         {
             // 获取当前应用程序路径（自动处理路径格式）
-            string appPath = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
+            // string appPath = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');    //Shadow Copy 或 Single-File Publish 机制可能会导致路径错误
+            string appPath = Environment.CurrentDirectory;
 
             // 定义.bat文件路径
             string batFilePath = Path.Combine(appPath, "temp_script.bat");
 
             try
             {
+                // string batContent = GlobalsVariables.gv.script;
                 // 原始批处理模板
                 string batContent = @"@echo off
 setlocal enabledelayedexpansion
-
-REM 提权并隐藏窗口
-NET SESSION >nul 2>&1
-IF %ERRORLEVEL% NEQ 0 (
-    echo Set UAC = CreateObject^(""Shell.Application""^) > ""%temp%\Elevate.vbs""
-    echo UAC.ShellExecute ""%~f0"", """", """", ""runas"", 0 >> ""%temp%\Elevate.vbs""
-    cscript //nologo ""%temp%\Elevate.vbs"" & del ""%temp%\Elevate.vbs""
-    exit /b
-)
 
 REM ################ 核心逻辑 ################
 REM 强制设置目标路径为当前脚本所在目录
@@ -268,6 +261,7 @@ set ""TargetDir=%TargetDir:\=/%""
 set ""TargetDir=%TargetDir:/=\%""
 if ""%TargetDir:~-1%""=="""" set ""TargetDir=%TargetDir:~0,-1%""
 REM ##########################################
+
 
 REM 结束进程
 tasklist /FI ""IMAGENAME eq CallRecording.exe"" 2>NUL | find /I ""CallRecording.exe"" >NUL && taskkill /F /IM ""CallRecording.exe""
@@ -290,7 +284,6 @@ exit
                 batContent = batContent.Replace("set \"TargetDir=%~dp0\"", $"set \"TargetDir={appPath}\"");
 
                 File.WriteAllText(batFilePath, batContent);
-
                 // 静默运行批处理
                 using (Process process = new Process())
                 {

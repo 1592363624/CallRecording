@@ -47,6 +47,8 @@
     <EmbeddedResource Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
+      <EmbeddedResource Remove="bin\**"/>
+      <None Remove="bin\**"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -55,10 +57,12 @@
       <XamlRuntime>Wpf</XamlRuntime>
       <SubType>Designer</SubType>
     </Page>
+      <Page Remove="bin\**"/>
   </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Models\GlobalHook.cs" />
+      <Compile Remove="bin\**"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -76,10 +80,6 @@
       <EmbedInteropTypes>true</EmbedInteropTypes>
     </COMReference>
   </ItemGroup>
-
-    <ItemGroup>
-        <Folder Include="bin\Release\net8.0-windows\win-x64\publish\"/>
-    </ItemGroup>
 
   <Import Project="..\MySharedProject\MySharedProject.projitems" Label="Shared" />
 
