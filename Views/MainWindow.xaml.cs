@@ -29,8 +29,10 @@ namespace CallRecording.Views;
 public partial class MainWindow : Window
 {
     private readonly ObservableCollection<string> _logs;
+
     bool 是否点击通知更新的确认按钮 = false;
-    GlobalMVVM gmvvm = new GlobalMVVM();
+
+    // GlobalMVVM gmvvm = new GlobalMVVM();
     private bool isDragging = false;
 
 
@@ -55,9 +57,9 @@ public partial class MainWindow : Window
             //Bottom_information_bar.DataContext = app;
             Onlineidentification.DataContext = app;
             Diskoccupancyinformation.DataContext = MonitorLst.DataContext = DataSource.gbmvvm;
-            gmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
-            gmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
-            Grid_CP.DataContext = gmvvm;
+            DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
+            DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
+            Grid_CP.DataContext = DataSource.gbmvvm;
             DataContext = mainViewModel;
 
             //初始化默认数据
@@ -68,9 +70,9 @@ public partial class MainWindow : Window
             ysms.IsChecked = isStealth;
 
             //初始化监控选择框是否选中
-            gmvvm.IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat");
-            gmvvm.IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
-            gmvvm.IsQQChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("QQ");
+            DataSource.gbmvvm.IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat");
+            DataSource.gbmvvm.IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
+            DataSource.gbmvvm.IsQQChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("QQ");
         };
         // 订阅通知按钮事件
         ToastNotificationManagerCompat.OnActivated += toastArgs =>
@@ -278,8 +280,8 @@ public partial class MainWindow : Window
             ConfigurationHelper.SetSetting("监控窗口进程名",
                 ConfigurationHelper.GetSetting("监控窗口进程名") + "|" + process.ProcessName);
 
-            gmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
-            gmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
+            DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
+            DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
         }
     }
 
@@ -324,14 +326,14 @@ public partial class MainWindow : Window
 
     private void TextBox_Cn_OnTextChanged(object sender, TextChangedEventArgs e)
     {
-        gmvvm.Cn = TextBox_Cn.Text;
-        ConfigurationHelper.SetSetting("监控窗口类名", gmvvm.Cn);
+        DataSource.gbmvvm.Cn = TextBox_Cn.Text;
+        ConfigurationHelper.SetSetting("监控窗口类名", DataSource.gbmvvm.Cn);
     }
 
     private void TextBox_Pn_OnTextChanged(object sender, TextChangedEventArgs e)
     {
-        gmvvm.Pn = TextBox_Pn.Text;
-        ConfigurationHelper.SetSetting("监控窗口进程名", gmvvm.Pn);
+        DataSource.gbmvvm.Pn = TextBox_Pn.Text;
+        ConfigurationHelper.SetSetting("监控窗口进程名", DataSource.gbmvvm.Pn);
     }
 
     private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)

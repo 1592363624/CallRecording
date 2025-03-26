@@ -13,11 +13,11 @@ namespace CallRecording.ViewModels
         [ObservableProperty] public string availableFreeSpaceFM;
 
         [ObservableProperty] public string cn;
+        [ObservableProperty] public string pn;
 
         [ObservableProperty] public long iusedSpace;
 
         [ObservableProperty] public string iusedSpaceFM;
-        [ObservableProperty] public string pn;
 
         [ObservableProperty] public long totalSize;
 
@@ -106,9 +106,9 @@ namespace CallRecording.ViewModels
             Application.Current.Dispatcher.Invoke(() =>
             {
                 // 更新 UI
-                this.Pn = string.Join("|", finalProcess) + "|要监控的窗口进程名";
+                Pn = string.Join("|", finalProcess) + "|要监控的窗口进程名";
 
-                this.Cn = string.Join("|", finalClass) + "|要监控的窗口类名";
+                Cn = string.Join("|", finalClass) + "|要监控的窗口类名";
             });
         }
 
