@@ -8,7 +8,7 @@
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     Style="{StaticResource MaterialDesignWindow}"
     Title="通话录音助手"
-    Width="700"
+    Width="800"
     Height="650"
     Background="#F0F0F0"
     FontFamily="Microsoft YaHei"
@@ -163,10 +163,22 @@
                                 </Grid.RowDefinitions>
                                 <StackPanel
                                     Grid.Row="0"
-                                    Margin="10"
+                                    Margin="20"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Bottom"
                                     Orientation="Horizontal">
+                                    <StackPanel>
+                                        <TextBox x:Name="HotkeyTextBox"
+                                                 Margin="0,0,10,0"
+                                                 PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"
+                                                 VerticalAlignment="Top"
+                                                 materialDesign:HintAssist.Hint="按下快捷键"
+                                                 TextAlignment="Center"
+                                                 AcceptsReturn="True"
+                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                 TextWrapping="Wrap"
+                                                 VerticalScrollBarVisibility="Auto" />
+                                    </StackPanel>
                                     <Button Margin="0,0,10,0" Command="{Binding ChooseSavePathCommand}"
                                             Content="选择保存路径" />
                                     <Button Margin="0,0,10,0" Command="{Binding ClearLogsCommand}" Content="清除日志" />
@@ -213,7 +225,7 @@
                                         <TextBlock Text="监控列表:" ToolTip="选择后需要重启软件生效" Margin="5"></TextBlock>
                                         <CheckBox Content="微信" Margin="5" IsChecked="{Binding IsWeChatChecked}" />
                                         <CheckBox Content="企业微信" Margin="5" IsChecked="{Binding IsWeChatWorkChecked}" />
-                                        <CheckBox Content="QQ" Margin="5" IsChecked="{Binding IsQQChecked}" />
+                                        <CheckBox Content="QQNT" Margin="5" IsChecked="{Binding IsQQChecked}" />
                                     </StackPanel>
                                 </Grid>
 

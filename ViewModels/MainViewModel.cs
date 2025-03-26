@@ -31,6 +31,8 @@ namespace CallRecording.ViewModels
         private NotifyIcon _notifyIcon;
         private Icon _recordingIcon;
 
+        private Keys _currentHotkey = Keys.F9;
+
         [ObservableProperty] private string _recordingSavePath;
         [ObservableProperty] public AudioFormat _selectedFormat;
         private WindowMonitor _windowMonitor;
@@ -109,6 +111,59 @@ namespace CallRecording.ViewModels
 
             //读取磁盘占用相关信息
             DataSource.gbmvvm.GetDiskInFo();
+
+            // 初始化时注册默认快捷键
+            GlobalHotkey.RegisterHotkey(_currentHotkey);
+            GlobalHotkey.OnHotkeyPressed += ToggleRecording;
+        }
+
+        public void SetHotkey(Keys hotkey)
+        {
+            // 注销当前快捷键
+            GlobalHotkey.UnregisterHotkey();
+
+            // 尝试注册新快捷键
+            bool success = GlobalHotkey.RegisterHotkey(hotkey);
+            if (success)
+            {
+                _currentHotkey = hotkey;
+                ConfigurationHelper.SetSetting("录音快捷键", hotkey.ToString());
+            }
+            else
+            {
+                // 如果冲突，恢复之前的快捷键
+                GlobalHotkey.RegisterHotkey(_currentHotkey);
+                ConfigurationHelper.SetSetting("录音快捷键", _currentHotkey.ToString());
+            }
+        }
+
+        private void ToggleRecording()
+        {
+            if (_recorder.IsRecording())
+            {
+                _logger.LogMessage($"快捷键触发录音-停止录音", "系统");
+                StopRecording();
+            }
+            else
+            {
+                StartRecording();
+            }
+        }
+
+        public void StartRecording()
+        {
+            _logger.LogMessage($"快捷键触发录音-开始录音", "系统");
+            if (!_recorder.IsRecording())
+            {
+                _recorder.StartRecording(RecordingSavePath, "通话"); //开始录音
+                _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
+            }
+        }
+
+        ~MainViewModel()
+        {
+            // 注销全局快捷键
+            GlobalHotkey.UnregisterHotkey();
         }
 
         public List<AudioFormat> AudioFormats { get; }
@@ -237,6 +292,7 @@ namespace CallRecording.ViewModels
         // 退出应用程序
         public void ExitApp(object sender, EventArgs e)
         {
+            GlobalHotkey.UnregisterHotkey();
             Application.Current.Dispatcher.Invoke(() =>
             {
                 _logger.LogMessage("退出应用程序。", "系统");

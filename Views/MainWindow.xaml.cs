@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
@@ -21,7 +22,10 @@ using MySharedProject.Model.MyAuth;
 using MySharedProject.Utiles;
 using MySharedProject.ViewModels.MyAuth;
 using Newtonsoft.Json;
+using Application = System.Windows.Application;
 using Control = System.Windows.Forms.Control;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Drawing.Point;
 
 namespace CallRecording.Views;
@@ -66,6 +70,7 @@ public partial class MainWindow : Window
             Hide();
             bool.TryParse(ConfigurationHelper.GetSetting("是否开机自启"), out bool isStartupEnabled);
             bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
+            HotkeyTextBox.Text = ConfigurationHelper.GetSetting("录音快捷键");
             kjzq.IsChecked = isStartupEnabled;
             ysms.IsChecked = isStealth;
 
@@ -344,5 +349,43 @@ public partial class MainWindow : Window
             UseShellExecute = true // 必须设置为 true（.NET Core/5+ 要求）
         });
         e.Handled = true; // 标记事件已处理
+    }
+
+    private void HotkeyTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        // 忽略修饰键（如 Ctrl、Alt、Shift）
+        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
+            e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
+            e.Key == Key.LeftShift || e.Key == Key.RightShift)
+        {
+            return;
+        }
+
+        // 获取按下的键
+        Keys pressedKey = (Keys)KeyInterop.VirtualKeyFromKey(e.Key);
+
+        // 获取修饰键状态
+        bool isCtrlPressed = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
+        bool isAltPressed = Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt);
+        bool isShiftPressed = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+
+        // 构建快捷键字符串
+        string hotkeyString = string.Empty;
+        if (isCtrlPressed) hotkeyString += "Ctrl + ";
+        if (isAltPressed) hotkeyString += "Alt + ";
+        if (isShiftPressed) hotkeyString += "Shift + ";
+        hotkeyString += pressedKey.ToString();
+
+        // 显示快捷键
+        HotkeyTextBox.Text = hotkeyString;
+
+        // 设置快捷键
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.SetHotkey(pressedKey);
+        }
+
+        // 阻止事件继续传递
+        e.Handled = true;
     }
 }

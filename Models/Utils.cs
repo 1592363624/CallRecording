@@ -402,6 +402,11 @@ exit
             {
                 ConfigurationHelper.SetSetting("上次执行检测更新时间", "2025-3-5 15:38:14");
             }
+
+            if (ConfigurationHelper.GetSetting("录音快捷键") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("录音快捷键", "F9");
+            }
         }
     }
 }
