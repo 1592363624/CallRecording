@@ -39,7 +39,6 @@ public partial class MainWindow : Window
     // GlobalMVVM gmvvm = new GlobalMVVM();
     private bool isDragging = false;
 
-
     string msg = "";
 
     public MainWindow()
@@ -61,6 +60,7 @@ public partial class MainWindow : Window
             //Bottom_information_bar.DataContext = app;
             Onlineidentification.DataContext = app;
             Diskoccupancyinformation.DataContext = MonitorLst.DataContext = DataSource.gbmvvm;
+            Button_OpenAudioManager.DataContext = mainViewModel;
             DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
             DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
             Grid_CP.DataContext = DataSource.gbmvvm;
@@ -311,7 +311,6 @@ public partial class MainWindow : Window
             DragFeedbackLayer.Children.Add(ellipse);
         }
     }
-
 
     private void ListBox_rz_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {

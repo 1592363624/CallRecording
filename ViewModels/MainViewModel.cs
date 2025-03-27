@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Forms;
 using CallRecording.Models;
 using CallRecording.Services;
+using CallRecording.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IWshRuntimeLibrary;
@@ -69,7 +70,6 @@ namespace CallRecording.ViewModels
                 ConfigurationHelper.SetSetting("OutputDirectory", AppDomain.CurrentDomain.BaseDirectory + "Recordings");
             }
 
-
             // 显示启动通知
             NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
 
@@ -96,7 +96,6 @@ namespace CallRecording.ViewModels
             InitializeWindowMonitor();
             Utils.软件启动次数add();
             _logger.LogMessage($"欢迎使用通话录音助手( ＾∀＾）／欢迎＼( ＾∀＾）", "通知");
-
 
             // 创建 Recorder 实例
             _recorder = new Recorder(_logger, _selectedFormat);
@@ -184,6 +183,16 @@ namespace CallRecording.ViewModels
             _isDefaultIcon = !_isDefaultIcon;
         }
 
+        // 打开音频管理器命令
+        [RelayCommand]
+        private void OpenAudioManager()
+        {
+            var managerWindow = new AudioManagerWindow();
+            var managerViewModel = new AudioManagerViewModel(_logger);
+            managerWindow.DataContext = managerViewModel;
+            managerWindow.Show();
+        }
+
         // 选择保存路径命令
         [RelayCommand]
         private void ChooseSavePath()
@@ -217,7 +226,6 @@ namespace CallRecording.ViewModels
         private void AddMo()
         {
         }
-
 
         // 开机自启命令
         [RelayCommand]
@@ -365,7 +373,6 @@ namespace CallRecording.ViewModels
                 //{
                 //    var path = AppDomain.CurrentDomain.BaseDirectory + ConfigurationHelper.GetSetting("OutputDirectory");
                 //    var DiskInfoIn = Utils.GetDiskInfoInMB(path);
-
 
                 //    TotalSize = Utils.FormatSize(DiskInfoIn.总大小);
                 //    AvailableFreeSpace = Utils.FormatSize(DiskInfoIn.可用空间);

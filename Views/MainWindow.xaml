@@ -47,7 +47,6 @@
         </Style>
     </Window.Resources>
 
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -66,7 +65,6 @@
 
         <!--  底部信息栏  -->
         <Grid Grid.Row="1" />
-
 
         <!--  新增扩展区域  -->
         <StackPanel Grid.Row="2">
@@ -149,8 +147,15 @@
                                             Margin="5"
                                             Foreground="Blue"
                                             Text="录音文件占用空间" />
+                                        <Button
+                                            x:Name="Button_OpenAudioManager"
+                                            Margin="10,0,0,0"
+                                            Command="{Binding OpenAudioManagerCommand}"
+                                            Content="音频管理"
+                                            ToolTip="管理录音文件" />
                                     </StackPanel>
                                 </StackPanel>
+
 
                             </Grid>
                         </TabItem>
@@ -189,7 +194,6 @@
                                         PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp"
                                         PreviewMouseMove="adm_MouseMove"
                                         ToolTip="长按并拖动鼠标到其他窗口上自动添加目标窗口监控（目前没有动画效果！可能需要重启软件生效）" />
-
                                     <CheckBox
                                         x:Name="kjzq"
                                         Margin="10,0,0,0"

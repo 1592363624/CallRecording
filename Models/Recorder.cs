@@ -13,7 +13,6 @@ namespace CallRecording.Models
             WAV
         }
 
-
         private readonly object _lockObject = new();
         private readonly Logger _logger;
         private bool _isMixing = false;
@@ -237,14 +236,23 @@ namespace CallRecording.Models
                                 // 确保读取的样本数相同
                                 int samplesToMix = Math.Min(readSpeaker, readMicrophone);
 
-                                // 根据位深度进行混合
+                                // 使用改进的混音算法
                                 if (waveFormatSpeaker.BitsPerSample == 16)
                                 {
                                     for (int i = 0; i < samplesToMix; i += 2)
                                     {
-                                        short sampleSpeaker = BitConverter.ToInt16(bufferSpeaker, i);
-                                        short sampleMicrophone = BitConverter.ToInt16(bufferMicrophone, i);
-                                        short mixedSample = (short)((sampleSpeaker + sampleMicrophone) / 2);
+                                        // 将16位整数转换为float进行更精确的混音
+                                        float sampleSpeaker = BitConverter.ToInt16(bufferSpeaker, i) / 32768f;
+                                        float sampleMicrophone = BitConverter.ToInt16(bufferMicrophone, i) / 32768f;
+
+                                        // 应用加权混合
+                                        float mixed = (sampleSpeaker * 0.7f) + (sampleMicrophone * 0.7f);
+
+                                        // 限制在[-1.0, 1.0]范围内
+                                        mixed = Math.Max(-1.0f, Math.Min(1.0f, mixed));
+
+                                        // 转回16位整数
+                                        short mixedSample = (short)(mixed * 32768f);
                                         byte[] mixedBytes = BitConverter.GetBytes(mixedSample);
                                         Array.Copy(mixedBytes, 0, bufferSpeaker, i, 2);
                                     }
@@ -253,9 +261,19 @@ namespace CallRecording.Models
                                 {
                                     for (int i = 0; i < samplesToMix; i += 4)
                                     {
-                                        int sampleSpeaker = BitConverter.ToInt32(bufferSpeaker, i);
-                                        int sampleMicrophone = BitConverter.ToInt32(bufferMicrophone, i);
-                                        int mixedSample = (sampleSpeaker + sampleMicrophone) / 2;
+                                        // 32位整数转float
+                                        float sampleSpeaker = BitConverter.ToInt32(bufferSpeaker, i) / 2147483648f;
+                                        float sampleMicrophone =
+                                            BitConverter.ToInt32(bufferMicrophone, i) / 2147483648f;
+
+                                        // 应用加权混合
+                                        float mixed = (sampleSpeaker * 0.7f) + (sampleMicrophone * 0.7f);
+
+                                        // 限制在[-1.0, 1.0]范围内
+                                        mixed = Math.Max(-1.0f, Math.Min(1.0f, mixed));
+
+                                        // 转回32位整数
+                                        int mixedSample = (int)(mixed * 2147483648f);
                                         byte[] mixedBytes = BitConverter.GetBytes(mixedSample);
                                         Array.Copy(mixedBytes, 0, bufferSpeaker, i, 4);
                                     }
@@ -271,7 +289,6 @@ namespace CallRecording.Models
                     }
                 }
 
-
                 _logger.LogMessage($"混音已完成，文件保存到: {_outputMixedFileName}", "录音器");
 
                 // 等待文件流完全释放
@@ -286,7 +303,6 @@ namespace CallRecording.Models
                 _logger.LogMessage($"混音过程中发生异常: {ex.Message}", "录音器");
             }
         }
-
 
         private string ConvertMp3ToWavIfNecessary(string inputFile)
         {

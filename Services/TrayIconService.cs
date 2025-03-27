@@ -8,7 +8,8 @@ namespace CallRecording.Services;
 public static class TrayIconService
 {
     // 设置系统托盘图标和上下文菜单
-    public static NotifyIcon SetupTrayIcon(Logger logger, bool isStealth, EventHandler showAppHandler, EventHandler exitAppHandler)
+    public static NotifyIcon SetupTrayIcon(Logger logger, bool isStealth, EventHandler showAppHandler,
+        EventHandler exitAppHandler)
     {
         var notifyIcon = new NotifyIcon
         {
