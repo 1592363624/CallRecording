@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Forms;
@@ -315,19 +316,34 @@ namespace CallRecording.ViewModels
         {
             var targetClassNames = new List<string> { "AudioWnd|WXworkWindow - 语音通话" };
             var targetProcessNames = new List<string> { "WeChat|WXWork" };
-            GlobalMVVM gmvvm = new GlobalMVVM();
-            gmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
-            gmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
+            // GlobalMVVM gmvvm = new GlobalMVVM();
+            DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
+            DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
 
-            if (!string.IsNullOrEmpty(gmvvm.Cn) && !string.IsNullOrEmpty(gmvvm.Pn))
+            if (!string.IsNullOrEmpty(DataSource.gbmvvm.Cn) && !string.IsNullOrEmpty(DataSource.gbmvvm.Pn))
             {
-                targetClassNames = gmvvm.Cn.Split('|').ToList();
-                targetProcessNames = gmvvm.Pn.Split('|').ToList();
+                targetClassNames = DataSource.gbmvvm.Cn.Split('|').ToList();
+                targetProcessNames = DataSource.gbmvvm.Pn.Split('|').ToList();
             }
 
             _windowMonitor = new WindowMonitor(targetClassNames, targetProcessNames);
             _windowMonitor.WindowCreated += OnWindowCreated;
             _windowMonitor.WindowDestroyed += OnWindowDestroyed;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
         }
 
         // 窗口创建事件处理
@@ -340,6 +356,44 @@ namespace CallRecording.ViewModels
             Process process = Process.GetProcessById((int)processId);
             string processName = process.ProcessName;
             string title = process.MainWindowTitle;
+            int width = 0;
+            int height = 0;
+            if (hwnd != IntPtr.Zero)
+            {
+                RECT rect;
+                if (GetWindowRect(hwnd, out rect))
+                {
+                    width = rect.Right - rect.Left;
+                    height = rect.Bottom - rect.Top;
+                }
+            }
+
+            // 软件适配微调
+            if (processName == "QQ") //QQNT
+            {
+                if (title != "语音通话")
+                {
+                    // _logger.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
+                    Debug.WriteLine($"检测到QQNT窗口: {title},但不是语音通话窗口,不进行通话录音");
+                    return;
+                }
+            }
+
+            if (processName == "Weixin") //微信测试版
+            {
+                //360 * 640
+                //640 * 480
+                if (width != 360 && height != 640)
+                {
+                    if (width != 640 && height != 480)
+                    {
+                        // _logger.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
+                        Debug.WriteLine($"检测到微信测试版窗口: {title}width{width}height{height},但不是语音通话窗口,不进行通话录音");
+                        return;
+                    }
+                }
+            }
+            // 软件适配微调
 
             _logger.LogMessage($"检测到通话窗口: {title}", "系统");
             if (!_recorder.IsRecording())

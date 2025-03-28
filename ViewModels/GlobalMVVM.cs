@@ -29,11 +29,13 @@ namespace CallRecording.ViewModels
 
         [ObservableProperty] public int wt = 500;
 
-        [ObservableProperty] private bool _isWeChatChecked;
+        [ObservableProperty] public bool _isWeChatChecked;
 
-        [ObservableProperty] private bool _isWeChatWorkChecked;
+        [ObservableProperty] public bool _isWeChatWorkChecked;
 
-        [ObservableProperty] private bool _isQQChecked;
+        [ObservableProperty] public bool _isQQChecked;
+
+        private int 判断软件是否刚启动 = 0;
 
         partial void OnIsWeChatCheckedChanged(bool value) => UpdateMonitorSettings();
         partial void OnIsWeChatWorkCheckedChanged(bool value) => UpdateMonitorSettings();
@@ -54,12 +56,22 @@ namespace CallRecording.ViewModels
         private readonly Dictionary<string, (string Process, string Class)> _appConfigMap = new()
         {
             { "微信", ("WeChat", "AudioWnd") },
-            { "QQ", ("QQ", "QQWindow") },
+            { "QQNT", ("QQ", "Chrome_RenderWidgetHostHWND") },
             { "企业微信", ("WXWork", "WXworkWindow") }
         };
 
         private void UpdateMonitorSettings()
         {
+            //因为首次初始化这个类的时候会执行一次,所以需要把第一次排除掉
+            if (判断软件是否刚启动 == 0)
+            {
+                // 读取配置文件初始化IsWeChatChecked, IsWeChatWorkChecked, IsQQChecked
+                IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat");
+                IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
+                IsQQChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("QQ");
+                判断软件是否刚启动++;
+            }
+
             var processList = new List<string>();
             var classList = new List<string>();
 
@@ -79,7 +91,7 @@ namespace CallRecording.ViewModels
             if (IsQQChecked)
             {
                 processList.Add("QQ");
-                classList.Add("QQWindow");
+                classList.Add("Chrome_RenderWidgetHostHWND");
             }
 
             // 获取现有的手动配置（过滤掉自动生成的配置）
