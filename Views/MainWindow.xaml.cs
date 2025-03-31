@@ -23,6 +23,7 @@ using MySharedProject.Utiles;
 using MySharedProject.ViewModels.MyAuth;
 using Newtonsoft.Json;
 using Application = System.Windows.Application;
+using Clipboard = System.Windows.Clipboard;
 using Control = System.Windows.Forms.Control;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
@@ -310,6 +311,24 @@ public partial class MainWindow : Window
             Canvas.SetTop(ellipse, pos.Y - 10);
             DragFeedbackLayer.Children.Add(ellipse);
         }
+    }
+
+    private void CopyCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+    {
+        e.CanExecute = ListBox_rz.SelectedItems.Count > 0;
+    }
+
+    private void CopyCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        var selectedItems = ListBox_rz.SelectedItems;
+        var sb = new StringBuilder();
+
+        foreach (var item in selectedItems)
+        {
+            sb.AppendLine(item.ToString());
+        }
+
+        Clipboard.SetText(sb.ToString());
     }
 
     private void ListBox_rz_MouseDoubleClick(object sender, MouseButtonEventArgs e)

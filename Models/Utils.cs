@@ -355,7 +355,7 @@ exit
 
             if (ConfigurationHelper.GetSetting("是否开机自启") == "NULL")
             {
-                ConfigurationHelper.SetSetting("是否开机自启", "True");
+                ConfigurationHelper.SetSetting("是否开机自启", "False");
             }
 
             if (ConfigurationHelper.GetSetting("是否隐身模式启动") == "NULL")

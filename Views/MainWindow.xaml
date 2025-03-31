@@ -54,14 +54,29 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ListBox
-            x:Name="ListBox_rz"
-            Margin="10"
-            Background="White"
-            BorderBrush="#CCCCCC"
-            BorderThickness="1"
-            ItemsSource="{Binding Logs}"
-            MouseDoubleClick="ListBox_rz_MouseDoubleClick" />
+        <!-- <ListBox -->
+        <!--     x:Name="ListBox_rz" -->
+        <!--     Margin="10" -->
+        <!--     Background="White" -->
+        <!--     BorderBrush="#CCCCCC" -->
+        <!--     BorderThickness="1" -->
+        <!--     ItemsSource="{Binding Logs}" -->
+        <!--     MouseDoubleClick="ListBox_rz_MouseDoubleClick" /> -->
+        <ListBox x:Name="ListBox_rz"
+                 Margin="10"
+                 Background="White"
+                 BorderBrush="#CCCCCC"
+                 BorderThickness="1"
+                 ItemsSource="{Binding Logs}"
+                 MouseDoubleClick="ListBox_rz_MouseDoubleClick">
+            <ListBox.CommandBindings>
+                <CommandBinding Command="ApplicationCommands.Copy"
+                                Executed="CopyCommand_Executed"
+                                CanExecute="CopyCommand_CanExecute" />
+            </ListBox.CommandBindings>
+            <!-- 你的列表项内容 -->
+        </ListBox>
+
 
         <!--  底部信息栏  -->
         <Grid Grid.Row="1" />
@@ -265,13 +280,22 @@
                         <TabItem Header="关于软件">
                             <StackPanel>
                                 <TextBlock FontSize="20" Foreground="Red" Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
+                                <TextBlock FontSize="20" Foreground="Green" TextWrapping="Wrap"
+                                           Text="不太推荐使用测试版的软件,例如微信测试版,他像QQNT一样重构了更换了开发框架,程序会有很大的变化,可能会有适配问题" />
                                 <TextBlock FontSize="20" Foreground="Red">
                                     <Run Text="去帖子支持作者:" />
                                     <Hyperlink
                                         NavigateUri="https://www.52pojie.cn/thread-1941879-1-1.html"
-                                        RequestNavigate="Hyperlink_RequestNavigate"
-                                        TextDecorations="{x:Null}">  <!-- 移除默认下划线 -->
+                                        RequestNavigate="Hyperlink_RequestNavigate"><!-- TextDecorations="{x:Null}" -->  <!-- 移除默认下划线 -->
                                         52pojie.cn
+                                    </Hyperlink>
+                                </TextBlock>
+                                <TextBlock FontSize="20" Foreground="Red">
+                                    <Run Text="Bug/需求-提交:" />
+                                    <Hyperlink
+                                        NavigateUri="https://github.com/1592363624/CallRecording/issues"
+                                        RequestNavigate="Hyperlink_RequestNavigate"><!-- TextDecorations="{x:Null}" -->  <!-- 移除默认下划线 -->
+                                        点我跳转
                                     </Hyperlink>
                                 </TextBlock>
                                 <TextBlock FontSize="20">
