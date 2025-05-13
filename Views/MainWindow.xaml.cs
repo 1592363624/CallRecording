@@ -9,9 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
 using CallRecording.Models;
 using CallRecording.ViewModels;
 using Microsoft.Toolkit.Uwp.Notifications;
@@ -39,6 +37,7 @@ public partial class MainWindow : Window
 
     // GlobalMVVM gmvvm = new GlobalMVVM();
     private bool isDragging = false;
+    private MarkerWindow markerWindow;
 
     string msg = "";
 
@@ -247,8 +246,22 @@ public partial class MainWindow : Window
 
     private void adm_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // 确保之前的状态已清理
+        if (markerWindow != null)
+        {
+            markerWindow.Close();
+            markerWindow = null;
+        }
+
+        // 重置拖拽状态
         isDragging = true;
-        Mouse.Capture(sender as UIElement);
+        var element = sender as UIElement;
+        if (element != null)
+        {
+            element.CaptureMouse();
+        }
+
+        e.Handled = true;
     }
 
     private void adm_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -268,10 +281,26 @@ public partial class MainWindow : Window
     {
         if (isDragging)
         {
-            // 右键取消拖拽
+            // 完全重置拖拽状态
             isDragging = false;
+            var element = sender as UIElement;
+            if (element != null)
+            {
+                element.ReleaseMouseCapture();
+            }
+
             Mouse.Capture(null);
             DragFeedbackLayer.Children.Clear();
+
+            // 关闭标记窗口
+            if (markerWindow != null)
+            {
+                markerWindow.Close();
+                markerWindow = null;
+            }
+
+            // 强制鼠标状态更新
+            e.Handled = true;
         }
     }
 
@@ -306,21 +335,23 @@ public partial class MainWindow : Window
     {
         if (isDragging && e.LeftButton == MouseButtonState.Pressed)
         {
-            // 清除旧标记
-            DragFeedbackLayer.Children.Clear();
+            // 获取全局鼠标位置
+            var screenPos = Control.MousePosition;
 
-            // 创建新标记
-            var pos = e.GetPosition(DragFeedbackLayer);
-            var ellipse = new Ellipse
+            // 创建或更新全屏标记窗口
+            if (markerWindow == null)
             {
-                Width = 20,
-                Height = 20,
-                Stroke = Brushes.Orange,
-                StrokeThickness = 2
-            };
-            Canvas.SetLeft(ellipse, pos.X - 10);
-            Canvas.SetTop(ellipse, pos.Y - 10);
-            DragFeedbackLayer.Children.Add(ellipse);
+                markerWindow = new MarkerWindow();
+                markerWindow.Show();
+            }
+
+            // 更新标记位置
+            markerWindow.UpdatePosition(screenPos.X, screenPos.Y);
+        }
+        else if (markerWindow != null)
+        {
+            markerWindow.Close();
+            markerWindow = null;
         }
     }
 
