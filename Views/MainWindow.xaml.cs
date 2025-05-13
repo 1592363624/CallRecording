@@ -264,6 +264,17 @@ public partial class MainWindow : Window
         }
     }
 
+    private void adm_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (isDragging)
+        {
+            // 右键取消拖拽
+            isDragging = false;
+            Mouse.Capture(null);
+            DragFeedbackLayer.Children.Clear();
+        }
+    }
+
     private void CaptureWindowInfo()
     {
         // 获取当前鼠标位置

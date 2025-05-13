@@ -17,34 +17,6 @@
 
     <Window.Resources>
         <local:DoubleToThicknessConverter x:Key="DoubleToThicknessConverter" />
-
-        <Style x:Key="HorizontalExpanderContentTextBlock" TargetType="{x:Type TextBlock}">
-            <Setter Property="Opacity" Value=".68" />
-            <Setter Property="Text"
-                    Value="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-
-        <Style x:Key="VerticalExpanderContentTextBlock"
-               TargetType="{x:Type TextBlock}"
-               BasedOn="{StaticResource HorizontalExpanderContentTextBlock}">
-            <Setter Property="MaxWidth" Value="180" />
-        </Style>
-
-        <Style x:Key="HorizontalDividerBorder" TargetType="{x:Type Border}">
-            <Setter Property="Background" Value="{DynamicResource MaterialDesignDivider}" />
-            <Setter Property="Height" Value="1" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="UseLayoutRounding" Value="True" />
-        </Style>
-
-        <Style x:Key="VerticalDividerBorder"
-               TargetType="{x:Type Border}"
-               BasedOn="{StaticResource HorizontalDividerBorder}">
-            <Setter Property="Height" Value="Auto" />
-            <Setter Property="VerticalAlignment" Value="Stretch" />
-            <Setter Property="Width" Value="1" />
-        </Style>
     </Window.Resources>
 
     <Grid>
@@ -54,14 +26,6 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- <ListBox -->
-        <!--     x:Name="ListBox_rz" -->
-        <!--     Margin="10" -->
-        <!--     Background="White" -->
-        <!--     BorderBrush="#CCCCCC" -->
-        <!--     BorderThickness="1" -->
-        <!--     ItemsSource="{Binding Logs}" -->
-        <!--     MouseDoubleClick="ListBox_rz_MouseDoubleClick" /> -->
         <ListBox x:Name="ListBox_rz"
                  Margin="10"
                  Background="White"
@@ -74,7 +38,6 @@
                                 Executed="CopyCommand_Executed"
                                 CanExecute="CopyCommand_CanExecute" />
             </ListBox.CommandBindings>
-            <!-- 你的列表项内容 -->
         </ListBox>
 
 
@@ -206,9 +169,9 @@
                                         x:Name="adm"
                                         Content="添加监控窗口"
                                         PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown"
+                                        PreviewMouseRightButtonDown="adm_MouseRightButtonDown"
                                         PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp"
-                                        PreviewMouseMove="adm_MouseMove"
-                                        ToolTip="长按并拖动鼠标到其他窗口上自动添加目标窗口监控（目前没有动画效果！可能需要重启软件生效）" />
+                                        PreviewMouseMove="adm_MouseMove" />
                                     <CheckBox
                                         x:Name="kjzq"
                                         Margin="10,0,0,0"
@@ -291,7 +254,7 @@
                                     </Hyperlink>
                                 </TextBlock>
                                 <TextBlock FontSize="20" Foreground="Red">
-                                    <Run Text="Bug/需求-提交:" />
+                                    <Run Text="Star/Bug/需求-提交:" />
                                     <Hyperlink
                                         NavigateUri="https://github.com/1592363624/CallRecording/issues"
                                         RequestNavigate="Hyperlink_RequestNavigate"><!-- TextDecorations="{x:Null}" -->  <!-- 移除默认下划线 -->
@@ -324,10 +287,6 @@
                     Margin="24,8,24,16"
                     Orientation="Vertical"
                     TextBlock.Foreground="{DynamicResource MaterialDesignBody}">
-                    <!-- <TextBlock -->
-                    <!--     Text="测试" /> -->
-                    <!-- <TextBlock -->
-                    <!--     Style="{StaticResource HorizontalExpanderContentTextBlock}" /> -->
                 </StackPanel>
             </Expander>
         </StackPanel>
