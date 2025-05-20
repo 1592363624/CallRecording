@@ -28,6 +28,13 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        //禁止重复运行
+        if (Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName).Length > 1)
+        {
+            Utils.msg("程序已运行");
+            Environment.Exit(0);
+        }
+
         //释放appsettings.json配置文件
         Utils.EnsureAppSettingsFile();
         //初始化配置文件&补充新增配置项
