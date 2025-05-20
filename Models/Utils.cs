@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Reflection;
 using System.Text;
+using Microsoft.Toolkit.Uwp.Notifications;
 using MySharedProject;
 using MySharedProject.Model;
 
@@ -15,6 +16,17 @@ namespace CallRecording.Models
         public static string GetFormattedTime()
         {
             return DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        }
+
+        /// <summary>
+        /// Win11系统通知
+        /// </summary>
+        /// <param name="AddText">通知内容</param>
+        public static void msg(string AddText)
+        {
+            new ToastContentBuilder()
+                .AddText(AddText)
+                .Show();
         }
 
         public static string DecodeBase64String(string base64EncodedData)
@@ -68,7 +80,7 @@ namespace CallRecording.Models
                 long usedSpaceMB = totalSizeMB - availableFreeSpaceMB;
 
 
-                return (totalSizeMB, availableFreeSpaceMB, usedSpaceMB);
+                return (totalSizeMB, usedSpaceMB, availableFreeSpaceMB);
             }
             else
             {

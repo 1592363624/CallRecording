@@ -65,49 +65,56 @@ public partial class App : Application
 
     private async void Login()
     {
-        string msg =
-            MySharedProject.Model.MyAuth.Login.SoftLogin(ConfigurationHelper.GetSetting("User"), null, null,
-                ref reftoken);
-        Debug.WriteLine(msg);
-
-        if (msg == "登录成功")
+        try
         {
-            //心跳
-            await Task.Run(() =>
-            {
-                //Thread.Sleep(160000);
-                while (true)
-                {
-                    string msg = Heart.SoftHeart(reftoken);
-                    if (msg == "心跳成功")
-                    {
-                        OnlineStatusColor = Brushes.Green;
-                        OnlineStatusToolTip = "运行正常";
-                    }
-                    else
-                    {
-                        OnlineStatusColor = Brushes.Red;
-                        OnlineStatusToolTip = "离线";
-                    }
+            string msg =
+                MySharedProject.Model.MyAuth.Login.SoftLogin(ConfigurationHelper.GetSetting("User"), null, null,
+                    ref reftoken);
+            Debug.WriteLine(msg);
 
-                    Thread.Sleep(160000);
-                }
-            });
+            if (msg == "登录成功")
+            {
+                //心跳
+                await Task.Run(() =>
+                {
+                    //Thread.Sleep(160000);
+                    while (true)
+                    {
+                        string msg = Heart.SoftHeart(reftoken);
+                        if (msg == "心跳成功")
+                        {
+                            OnlineStatusColor = Brushes.Green;
+                            OnlineStatusToolTip = "运行正常";
+                        }
+                        else
+                        {
+                            OnlineStatusColor = Brushes.Red;
+                            OnlineStatusToolTip = "离线状态";
+                        }
+
+                        Thread.Sleep(160000);
+                    }
+                });
+            }
+            else if (msg == "账号不存在")
+            {
+                await loadConfiguration();
+                Login();
+                //心跳
+                await Task.Run(() =>
+                {
+                    //Thread.Sleep(160000);
+                    while (true)
+                    {
+                        string msg = Heart.SoftHeart(reftoken);
+                        Thread.Sleep(160000);
+                    }
+                });
+            }
         }
-        else if (msg == "账号不存在")
+        catch (Exception e)
         {
-            await loadConfiguration();
-            Login();
-            //心跳
-            await Task.Run(() =>
-            {
-                //Thread.Sleep(160000);
-                while (true)
-                {
-                    string msg = Heart.SoftHeart(reftoken);
-                    Thread.Sleep(160000);
-                }
-            });
+            // Utils.msg("登录失败:"+e.Message);
         }
     }
 
