@@ -71,8 +71,15 @@ namespace CallRecording.ViewModels
                 ConfigurationHelper.SetSetting("OutputDirectory", AppDomain.CurrentDomain.BaseDirectory + "Recordings");
             }
 
-            // 显示启动通知
-            NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
+            try
+            {
+                // 显示启动通知
+                NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogMessage($"启动通知发送失败: {ex.Message}", "警告");
+            }
 
             // 设置系统托盘图标
             bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);

@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Media;
 using CallRecording.Models;
+using CallRecording.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Configuration;
 using MySharedProject;
@@ -31,7 +32,7 @@ public partial class App : Application
         //禁止重复运行
         if (Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName).Length > 1)
         {
-            Utils.msg("程序已运行");
+            NotificationService.ShowNotification("程序已启动", "请勿重复启动");
             Environment.Exit(0);
         }
 
@@ -121,7 +122,7 @@ public partial class App : Application
         }
         catch (Exception e)
         {
-            // Utils.msg("登录失败:"+e.Message);
+            // 
         }
     }
 
