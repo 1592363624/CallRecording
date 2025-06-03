@@ -19,7 +19,7 @@ public static class NotificationService
         catch (Exception ex)
         {
             // 回退到Windows原生通知
-            MessageBox.Show($"{title}\n{message}", "原生通知(因为系统通知失败)",
+            MessageBox.Show($"{title}\n{message}", "原生通知模式(toast通知失败)",
                 MessageBoxButton.OK, MessageBoxImage.Information);
 
             // 记录错误
