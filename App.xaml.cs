@@ -29,6 +29,7 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
         //禁止重复运行
         if (Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName).Length > 1)
         {
@@ -42,11 +43,6 @@ public partial class App : Application
         ConfigurationHelper.LoadConfiguration();
         Utils.InitAppsettings();
         Console.WriteLine("测试输出内容");
-        // var builder = new ConfigurationBuilder()
-        //     // .SetBasePath(Directory.GetCurrentDirectory())    //根目录
-        //     .SetBasePath(Path.GetDirectoryName(DataSource.Configurationfilepath))  //固定配置项位置
-        //     .AddJsonFile("appsettings.json", true, true);
-        // Configuration = builder.Build();
 
         //可以屏蔽这段正常运行 因为是用的共享项目的代码
 

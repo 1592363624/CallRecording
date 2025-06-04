@@ -13,7 +13,6 @@ using CallRecording.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IWshRuntimeLibrary;
-using Microsoft.Toolkit.Uwp.Notifications;
 using MySharedProject;
 using MySharedProject.Model;
 using Application = System.Windows.Application;
@@ -75,12 +74,7 @@ namespace CallRecording.ViewModels
             try
             {
                 // 显示启动通知
-                // NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
-                //此处不用方法是因为异常之后不想让程序使用原生通知,以免需要点击很烦人
-                new ToastContentBuilder()
-                    .AddText("通话录音助手正在后台运行")
-                    .AddText("点击此处关闭通知!")
-                    .Show();
+                NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
             }
             catch (Exception ex)
             {
