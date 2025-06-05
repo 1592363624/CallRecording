@@ -85,10 +85,15 @@ public partial class App : Application
                     while (true)
                     {
                         string msg = Heart.SoftHeart(reftoken);
-                        if (msg == "心跳成功")
+                        if (msg == "心跳成功" && !GlobalsVariables.是否有新版本)
                         {
                             OnlineStatusColor = Brushes.Green;
                             OnlineStatusToolTip = "运行正常";
+                        }
+                        else if (GlobalsVariables.是否有新版本)
+                        {
+                            OnlineStatusColor = Brushes.Orange;
+                            OnlineStatusToolTip = "有新版本";
                         }
                         else
                         {

@@ -138,7 +138,6 @@ public partial class MainWindow : Window
         try
         {
             string? latestVersion = Soft.GetNewVersion();
-            // string? latestVersion = Myauthsoft.CheckUpdate();
             // 获取更新日志列表，并取第一个元素的版本号
             var NewVersion = JsonConvert.DeserializeObject<ApiResponse>(latestVersion);
             var latestVer = NewVersion?.result?.list?[0].ver;
@@ -157,6 +156,8 @@ public partial class MainWindow : Window
             {
                 try
                 {
+                    GlobalsVariables.是否有新版本 = true;
+
                     new ToastContentBuilder()
                         .AddText("检测到有新版本")
                         // .AddInlineImage(new Uri(FileUtil.当前文件目录 + "Assets/icons/安全.png"))
