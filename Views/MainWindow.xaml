@@ -7,7 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     Style="{StaticResource MaterialDesignWindow}"
-    Title="通话录音助手"
+    Title="{DynamicResource WindowTitle}"
     Width="800"
     Height="650"
     Background="#F0F0F0"

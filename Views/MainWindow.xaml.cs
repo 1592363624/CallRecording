@@ -151,6 +151,7 @@ public partial class MainWindow : Window
             text_updateLog.Text = "\n" + UpdateLog + "\n";
             Assembly assembly = Assembly.GetExecutingAssembly();
             FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+            Resources.Add("WindowTitle", "通话录音助手 v" + fileVersionInfo.FileVersion);
 
             if (latestVer != fileVersionInfo.FileVersion)
             {
