@@ -402,7 +402,7 @@ exit
 
             if (ConfigurationHelper.GetSetting("监控窗口类名") == "NULL")
             {
-                ConfigurationHelper.SetSetting("监控窗口类名", "AudioWnd|要监控的窗口类名");
+                ConfigurationHelper.SetSetting("监控窗口类名", "AudioWnd|ILinkAudioWnd|要监控的窗口类名");
             }
 
             if (ConfigurationHelper.GetSetting("监控窗口进程名") == "NULL")

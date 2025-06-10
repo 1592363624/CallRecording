@@ -55,7 +55,7 @@ namespace CallRecording.ViewModels
 
         private readonly Dictionary<string, (string Process, string Class)> _appConfigMap = new()
         {
-            { "微信", ("WeChat", "AudioWnd") },
+            { "微信", ("WeChat", "AudioWnd|ILinkAudioWnd") },
             { "QQNT", ("QQ", "Chrome_RenderWidgetHostHWND") },
             { "企业微信", ("WXWork", "WXworkWindow") }
         };
@@ -79,7 +79,7 @@ namespace CallRecording.ViewModels
             if (IsWeChatChecked)
             {
                 processList.Add("WeChat");
-                classList.Add("AudioWnd");
+                classList.AddRange("AudioWnd|ILinkAudioWnd".Split('|'));
             }
 
             if (IsWeChatWorkChecked)
@@ -103,7 +103,8 @@ namespace CallRecording.ViewModels
             var existingClass = ConfigurationHelper.GetSetting("监控窗口类名").Split('|')
                 .Where(x => !string.IsNullOrEmpty(x)
                             && !x.Contains("要监控")
-                            && !_appConfigMap.Values.Any(v => v.Class == x)); // 排除自动配置项
+                            && !_appConfigMap.Values.Any(v =>
+                                v.Class.Split('|').Contains(x))); // 检查分割后的类名 // 排除自动配置项
 
             // 合并配置（当前勾选项 + 手动添加项）
             var finalProcess = processList.Union(existingProcess).Distinct().ToArray();

@@ -153,7 +153,7 @@ public partial class MainWindow : Window
             FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
             Resources.Add("WindowTitle", "通话录音助手 v" + fileVersionInfo.FileVersion);
 
-            if (latestVer != fileVersionInfo.FileVersion)
+            if (Version.Parse(latestVer) > Version.Parse(fileVersionInfo.FileVersion))
             {
                 try
                 {
