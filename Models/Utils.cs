@@ -402,12 +402,17 @@ exit
 
             if (ConfigurationHelper.GetSetting("监控窗口类名") == "NULL")
             {
-                ConfigurationHelper.SetSetting("监控窗口类名", "AudioWnd|ILinkAudioWnd|要监控的窗口类名");
+                ConfigurationHelper.SetSetting("监控窗口类名", "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon|要监控的窗口类名");
             }
 
             if (ConfigurationHelper.GetSetting("监控窗口进程名") == "NULL")
             {
-                ConfigurationHelper.SetSetting("监控窗口进程名", "WeChat|要监控的窗口进程名");
+                ConfigurationHelper.SetSetting("监控窗口进程名", "WeChat|Weixin|要监控的窗口进程名");
+            }
+
+            if (ConfigurationHelper.GetSetting("监控窗口标题") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("监控窗口标题", "语音");
             }
 
             if (ConfigurationHelper.GetSetting("上次执行检测更新时间") == "NULL")

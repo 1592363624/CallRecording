@@ -14,6 +14,7 @@ namespace CallRecording.ViewModels
 
         [ObservableProperty] public string cn;
         [ObservableProperty] public string pn;
+        [ObservableProperty] public string tt;
 
         [ObservableProperty] public long iusedSpace;
 
@@ -53,11 +54,11 @@ namespace CallRecording.ViewModels
         // 用于计算第二个矩形和第三个矩形的偏移量
         public double TotalUsedProportion => UsedSpaceProportion + AvailableFreeSpaceProportion;
 
-        private readonly Dictionary<string, (string Process, string Class)> _appConfigMap = new()
+        private readonly Dictionary<string, (string Process, string Class, string Title)> _appConfigMap = new()
         {
-            { "微信", ("WeChat", "AudioWnd|ILinkAudioWnd") },
-            { "QQNT", ("QQ", "Chrome_RenderWidgetHostHWND") },
-            { "企业微信", ("WXWork", "WXworkWindow") }
+            { "微信", ("WeChat|Weixin", "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon", "语音") },
+            { "QQNT", ("QQ", "Chrome_RenderWidgetHostHWND", "语音") },
+            { "企业微信", ("WXWork", "WXworkWindow", "语音") }
         };
 
         private void UpdateMonitorSettings()
@@ -66,7 +67,7 @@ namespace CallRecording.ViewModels
             if (判断软件是否刚启动 == 0)
             {
                 // 读取配置文件初始化IsWeChatChecked, IsWeChatWorkChecked, IsQQChecked
-                IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat");
+                IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat|Weixin");
                 IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
                 IsQQChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("QQ");
                 判断软件是否刚启动++;
@@ -74,24 +75,28 @@ namespace CallRecording.ViewModels
 
             var processList = new List<string>();
             var classList = new List<string>();
+            var titleList = new List<string>();
 
             // 根据勾选状态添加新配置
             if (IsWeChatChecked)
             {
-                processList.Add("WeChat");
-                classList.AddRange("AudioWnd|ILinkAudioWnd".Split('|'));
+                processList.AddRange("WeChat|Weixin".Split('|'));
+                classList.AddRange("AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon".Split('|'));
+                titleList.AddRange("语音".Split('|'));
             }
 
             if (IsWeChatWorkChecked)
             {
                 processList.Add("WXWork");
                 classList.Add("WXworkWindow");
+                titleList.Add("语音");
             }
 
             if (IsQQChecked)
             {
                 processList.Add("QQ");
                 classList.Add("Chrome_RenderWidgetHostHWND");
+                titleList.Add("语音");
             }
 
             // 获取现有的手动配置（过滤掉自动生成的配置）
@@ -106,22 +111,31 @@ namespace CallRecording.ViewModels
                             && !_appConfigMap.Values.Any(v =>
                                 v.Class.Split('|').Contains(x))); // 检查分割后的类名 // 排除自动配置项
 
+            var existingTitle = ConfigurationHelper.GetSetting("监控窗口标题").Split('|')
+                .Where(x => !string.IsNullOrEmpty(x)
+                            && !x.Contains("要监控")
+                            && !_appConfigMap.Values.Any(v =>
+                                v.Title.Split('|').Contains(x))); // 检查分割后的标题 // 排除自动配置项
+
             // 合并配置（当前勾选项 + 手动添加项）
             var finalProcess = processList.Union(existingProcess).Distinct().ToArray();
             var finalClass = classList.Union(existingClass).Distinct().ToArray();
+            var finalTitle = titleList.Union(existingTitle).Distinct().ToArray();
 
             // 保存配置
             ConfigurationHelper.SetSetting("监控窗口进程名",
                 string.Join("|", finalProcess) + "|要监控的窗口进程名");
             ConfigurationHelper.SetSetting("监控窗口类名",
                 string.Join("|", finalClass) + "|要监控的窗口类名");
+            ConfigurationHelper.SetSetting("监控窗口标题",
+                string.Join("|", finalTitle) + "|要监控的窗口标题");
 
             Application.Current.Dispatcher.Invoke(() =>
             {
                 // 更新 UI
                 Pn = string.Join("|", finalProcess) + "|要监控的窗口进程名";
-
                 Cn = string.Join("|", finalClass) + "|要监控的窗口类名";
+                Tt = string.Join("|", finalTitle) + "|要监控的窗口标题";
             });
         }
 

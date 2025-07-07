@@ -23,6 +23,12 @@ public class WindowInfo
     [DllImport("user32.dll", SetLastError = true)]
     private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern int GetWindowTextLength(IntPtr hWnd);
+
     // 获取窗口样式并解析
     public static string GetWindowStyles(IntPtr hWnd)
     {
@@ -55,5 +61,16 @@ public class WindowInfo
         StringBuilder className = new StringBuilder(256);
         GetClassName(hWnd, className, className.Capacity);
         return className.ToString();
+    }
+
+    // 获取窗口标题
+    public static string GetWindowTitle(IntPtr hWnd)
+    {
+        int length = GetWindowTextLength(hWnd);
+        if (length == 0) return string.Empty;
+
+        StringBuilder title = new StringBuilder(length + 1);
+        GetWindowText(hWnd, title, title.Capacity);
+        return title.ToString();
     }
 }

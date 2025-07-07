@@ -285,12 +285,27 @@ namespace CallRecording.ViewModels
 
         private void CreateShortcut(string shortcutPath, string targetPath)
         {
-            WshShell shell = new WshShell();
-            IWshShortcut shortcut = (IWshShortcut)shell.CreateShortcut(shortcutPath);
-            shortcut.Description = "CallRecording 开机自启";
-            shortcut.TargetPath = targetPath;
-            shortcut.WorkingDirectory = Path.GetDirectoryName(targetPath);
-            shortcut.Save();
+            WshShell shell = null;
+            IWshShortcut shortcut = null;
+            try
+            {
+                shell = new WshShell();
+                shortcut = (IWshShortcut)shell.CreateShortcut(shortcutPath);
+                shortcut.Description = "CallRecording 开机自启";
+                shortcut.TargetPath = targetPath;
+                shortcut.WorkingDirectory = Path.GetDirectoryName(targetPath);
+                shortcut.Save();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogMessage($"创建快捷方式失败: {ex.Message}", "错误");
+            }
+            finally
+            {
+                // 显式释放COM资源
+                if (shortcut != null) Marshal.ReleaseComObject(shortcut);
+                if (shell != null) Marshal.ReleaseComObject(shell);
+            }
         }
 
         // 显示应用程序窗口
@@ -321,19 +336,29 @@ namespace CallRecording.ViewModels
         // 初始化窗口监控
         private void InitializeWindowMonitor()
         {
-            var targetClassNames = new List<string> { "AudioWnd|WXworkWindow - 语音通话" };
-            var targetProcessNames = new List<string> { "WeChat|WXWork" };
+            var targetClassNames = new List<string> { "AudioWnd|WXworkWindow|Qt51514QWindowIcon" };
+            var targetProcessNames = new List<string> { "WeChat|WXWork|Weixin" };
+            var targetTitles = new List<string> { "语音" };
             // GlobalMVVM gmvvm = new GlobalMVVM();
             DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
             DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
+            DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
 
-            if (!string.IsNullOrEmpty(DataSource.gbmvvm.Cn) && !string.IsNullOrEmpty(DataSource.gbmvvm.Pn))
+            if (!string.IsNullOrEmpty(DataSource.gbmvvm.Cn) && !string.IsNullOrEmpty(DataSource.gbmvvm.Pn) &&
+                !string.IsNullOrEmpty(DataSource.gbmvvm.Tt))
             {
                 targetClassNames = DataSource.gbmvvm.Cn.Split('|').ToList();
                 targetProcessNames = DataSource.gbmvvm.Pn.Split('|').ToList();
+                targetTitles = DataSource.gbmvvm.Tt.Split('|').ToList();
+            }
+            else
+            {
+                ConfigurationHelper.SetSetting("监控窗口标题", "语音"); //添加默认监控窗口标题,禁止为空
+                DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
+                targetTitles = [DataSource.gbmvvm.Tt];
             }
 
-            _windowMonitor = new WindowMonitor(targetClassNames, targetProcessNames);
+            _windowMonitor = new WindowMonitor(targetClassNames, targetProcessNames, targetTitles);
             _windowMonitor.WindowCreated += OnWindowCreated;
             _windowMonitor.WindowDestroyed += OnWindowDestroyed;
         }
@@ -386,20 +411,20 @@ namespace CallRecording.ViewModels
                 }
             }
 
-            if (processName == "Weixin") //微信测试版
-            {
-                //360 * 640
-                //640 * 480
-                if (width != 360 && height != 640)
-                {
-                    if (width != 640 && height != 480)
-                    {
-                        // _logger.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
-                        Debug.WriteLine($"检测到微信测试版窗口: {title}width{width}height{height},但不是语音通话窗口,不进行通话录音");
-                        return;
-                    }
-                }
-            }
+            // if (processName == "Weixin") //微信测试版
+            // {
+            //     //360 * 640
+            //     //640 * 480
+            //     if (width != 360 && height != 640)
+            //     {
+            //         if (width != 640 && height != 480)
+            //         {
+            //             // _logger.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
+            //             Debug.WriteLine($"检测到微信测试版窗口: {title}width{width}height{height},但不是语音通话窗口,不进行通话录音");
+            //             return;
+            //         }
+            //     }
+            // }
             // 软件适配微调
 
             _logger.LogMessage($"检测到通话窗口: {title}", "系统");

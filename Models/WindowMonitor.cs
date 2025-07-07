@@ -33,29 +33,38 @@ namespace CallRecording.Services
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         // 事件常量
-        private const uint EVENT_OBJECT_CREATE = 0x8000;
-        private const uint EVENT_OBJECT_DESTROY = 0x8001;
-        private const uint WINEVENT_OUTOFCONTEXT = 0;
+        const uint EVENT_OBJECT_CREATE = 0x8000;
+        const uint EVENT_OBJECT_DESTROY = 0x8001;
+        const uint EVENT_SYSTEM_DIALOGSTART = 0x0010;
+        const uint EVENT_SYSTEM_DIALOGEND = 0x0011;
+        const uint EVENT_OBJECT_SHOW = 0x8002;
+        const uint EVENT_OBJECT_HIDE = 0x8003;
+        const uint WINEVENT_OUTOFCONTEXT = 0;
 
         // 窗口钩子句柄
         private IntPtr hWinEventHook;
 
-        // 目标窗口类名和进程名列表
+        // 目标窗口类名、进程名和标题列表
         public List<string> TargetClassNames { get; set; }
         public List<string> TargetProcessNames { get; set; }
+        public List<string> TargetTitles { get; set; }
 
         // 窗口创建和销毁事件
         public event EventHandler<IntPtr> WindowCreated;
         public event EventHandler<IntPtr> WindowDestroyed;
 
-        public WindowMonitor(List<string> targetClassNames, List<string> targetProcessNames)
+        public WindowMonitor(List<string> targetClassNames, List<string> targetProcessNames,
+            List<string> targetTitles = null)
         {
             TargetClassNames = targetClassNames ?? new List<string>();
             TargetProcessNames = targetProcessNames ?? new List<string>();
+            TargetTitles = targetTitles ?? new List<string>();
             procDelegate = new WinEventDelegate(WinEventProc);
-            hWinEventHook = SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_DESTROY, IntPtr.Zero, procDelegate, 0, 0,
+            hWinEventHook = SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_HIDE, IntPtr.Zero, procDelegate, 0, 0,
                 WINEVENT_OUTOFCONTEXT);
         }
+
+        private readonly Dictionary<IntPtr, DateTime> _pendingWindows = new();
 
         public void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild,
             uint dwEventThread, uint dwmsEventTime)
@@ -69,13 +78,16 @@ namespace CallRecording.Services
             {
                 Process process = Process.GetProcessById((int)processId);
                 string processName = process.ProcessName;
-                if (TargetClassNames.Contains(className.ToString()) && TargetProcessNames.Contains(processName))
+                string windowTitle = WindowInfo.GetWindowTitle(hwnd);
+                bool titleMatch = TargetTitles.Any(title => windowTitle.Contains(title));
+                if (TargetClassNames.Contains(className.ToString()) && TargetProcessNames.Contains(processName) &&
+                    titleMatch)
                 {
-                    if (eventType == EVENT_OBJECT_CREATE)
+                    if (eventType == EVENT_OBJECT_CREATE || eventType == EVENT_OBJECT_SHOW)
                     {
                         WindowCreated?.Invoke(this, hwnd);
                     }
-                    else if (eventType == EVENT_OBJECT_DESTROY)
+                    else if (eventType == EVENT_OBJECT_DESTROY || eventType == EVENT_OBJECT_HIDE)
                     {
                         WindowDestroyed?.Invoke(this, hwnd);
                     }

@@ -47,8 +47,8 @@
     <EmbeddedResource Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-      <EmbeddedResource Remove="bin\**"/>
-      <None Remove="bin\**"/>
+    <EmbeddedResource Remove="bin\**"/>
+    <None Remove="bin\**"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -57,12 +57,12 @@
       <XamlRuntime>Wpf</XamlRuntime>
       <SubType>Designer</SubType>
     </Page>
-      <Page Remove="bin\**"/>
+    <Page Remove="bin\**"/>
   </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Models\GlobalHook.cs" />
-      <Compile Remove="bin\**"/>
+    <Compile Remove="bin\**"/>
   </ItemGroup>
 
   <ItemGroup>

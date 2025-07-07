@@ -63,6 +63,7 @@ public partial class MainWindow : Window
             Button_OpenAudioManager.DataContext = mainViewModel;
             DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
             DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
+            DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
             Grid_CP.DataContext = DataSource.gbmvvm;
             DataContext = mainViewModel;
 
@@ -131,6 +132,10 @@ public partial class MainWindow : Window
     // 获取窗口进程ID
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    // 获取窗口标题
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
     //检测更新
     private async Task CheckUpdate()
@@ -324,12 +329,19 @@ public partial class MainWindow : Window
             GetWindowThreadProcessId(hWnd, out uint processId);
             Process process = Process.GetProcessById((int)processId);
 
+            // 获取窗口标题
+            StringBuilder windowTitle = new StringBuilder(256);
+            GetWindowText(hWnd, windowTitle, windowTitle.Capacity);
+
             ConfigurationHelper.SetSetting("监控窗口类名", ConfigurationHelper.GetSetting("监控窗口类名") + "|" + className);
             ConfigurationHelper.SetSetting("监控窗口进程名",
                 ConfigurationHelper.GetSetting("监控窗口进程名") + "|" + process.ProcessName);
+            ConfigurationHelper.SetSetting("监控窗口标题",
+                ConfigurationHelper.GetSetting("监控窗口标题") + "|" + windowTitle);
 
             DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
             DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
+            DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
         }
     }
 
@@ -401,6 +413,12 @@ public partial class MainWindow : Window
     {
         DataSource.gbmvvm.Pn = TextBox_Pn.Text;
         ConfigurationHelper.SetSetting("监控窗口进程名", DataSource.gbmvvm.Pn);
+    }
+
+    private void TextBox_Tt_OnTextChanged(object sender, TextChangedEventArgs e)
+    {
+        DataSource.gbmvvm.Tt = TextBox_Tt.Text;
+        ConfigurationHelper.SetSetting("监控窗口标题", DataSource.gbmvvm.Tt);
     }
 
     private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
