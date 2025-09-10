@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using NAudio.CoreAudioApi;
 using NAudio.Lame;
 using NAudio.Wave;
@@ -17,6 +17,7 @@ namespace CallRecording.Models
         private readonly Logger _logger;
         private bool _isMixing = false;
         private bool _isRecording;
+        private bool _isPaused = false; // 添加暂停状态标志
         public WasapiLoopbackCapture _loopbackSource;
         private WasapiCapture _microphoneSource;
         private LameMP3FileWriter _mp3MicrophoneFile;
@@ -61,9 +62,17 @@ namespace CallRecording.Models
                         _waveMicrophoneFile =
                             new WaveFileWriter(_outputMicrophoneFileName, _microphoneSource.WaveFormat);
 
-                        _loopbackSource.DataAvailable += (s, e) => _waveSpeakerFile.Write(e.Buffer, 0, e.BytesRecorded);
+                        _loopbackSource.DataAvailable += (s, e) =>
+                        {
+                            if (!_isPaused) // 添加暂停检查
+                                _waveSpeakerFile.Write(e.Buffer, 0, e.BytesRecorded);
+                        };
                         _microphoneSource.DataAvailable +=
-                            (s, e) => _waveMicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
+                            (s, e) =>
+                            {
+                                if (!_isPaused) // 添加暂停检查
+                                    _waveMicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
+                            };
                     }
                     else if (_selectedFormat == AudioFormat.MP3)
                     {
@@ -72,9 +81,17 @@ namespace CallRecording.Models
                         _mp3MicrophoneFile = new LameMP3FileWriter(_outputMicrophoneFileName,
                             _microphoneSource.WaveFormat, LAMEPreset.STANDARD);
 
-                        _loopbackSource.DataAvailable += (s, e) => _mp3SpeakerFile.Write(e.Buffer, 0, e.BytesRecorded);
+                        _loopbackSource.DataAvailable += (s, e) =>
+                        {
+                            if (!_isPaused) // 添加暂停检查
+                                _mp3SpeakerFile.Write(e.Buffer, 0, e.BytesRecorded);
+                        };
                         _microphoneSource.DataAvailable +=
-                            (s, e) => _mp3MicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
+                            (s, e) =>
+                            {
+                                if (!_isPaused) // 添加暂停检查
+                                    _mp3MicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
+                            };
                     }
 
                     _loopbackSource.RecordingStopped += OnRecordingStopped;
@@ -83,6 +100,7 @@ namespace CallRecording.Models
                     _loopbackSource.StartRecording();
                     _microphoneSource.StartRecording();
                     _isRecording = true;
+                    _isPaused = false; // 重置暂停状态
 
                     _logger.LogMessage("开始录音...", softwareName);
                 }
@@ -134,6 +152,31 @@ namespace CallRecording.Models
                 }
 
                 _isRecording = false;
+                _isPaused = false; // 重置暂停状态
+            }
+        }
+
+        // 添加暂停录音方法
+        public void PauseRecording()
+        {
+            lock (_lockObject)
+            {
+                if (!_isRecording || _isPaused) return;
+
+                _isPaused = true;
+                _logger.LogMessage("录音已暂停", "录音器");
+            }
+        }
+
+        // 添加恢复录音方法
+        public void ResumeRecording()
+        {
+            lock (_lockObject)
+            {
+                if (!_isRecording || !_isPaused) return;
+
+                _isPaused = false;
+                _logger.LogMessage("录音已恢复", "录音器");
             }
         }
 
@@ -142,6 +185,15 @@ namespace CallRecording.Models
             lock (_lockObject)
             {
                 return _isRecording;
+            }
+        }
+
+        // 添加检查是否暂停的方法
+        public bool IsPaused()
+        {
+            lock (_lockObject)
+            {
+                return _isPaused;
             }
         }
 

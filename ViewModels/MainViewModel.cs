@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -148,11 +148,23 @@ namespace CallRecording.ViewModels
         {
             if (_recorder.IsRecording())
             {
-                _logger.LogMessage($"快捷键触发录音-停止录音", "系统");
-                StopRecording();
+                if (_recorder.IsPaused())
+                {
+                    // 如果当前是暂停状态，则恢复录音
+                    _logger.LogMessage($"快捷键触发录音-恢复录音", "系统");
+                    ResumeRecording();
+                }
+                else
+                {
+                    // 如果当前是录音状态，则暂停录音
+                    _logger.LogMessage($"快捷键触发录音-暂停录音", "系统");
+                    PauseRecording();
+                }
             }
             else
             {
+                // 如果没有在录音，则开始录音
+                _logger.LogMessage($"快捷键触发录音-开始录音", "系统");
                 StartRecording();
             }
         }
@@ -164,6 +176,26 @@ namespace CallRecording.ViewModels
             {
                 _recorder.StartRecording(RecordingSavePath, "通话"); //开始录音
                 _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
+            }
+        }
+
+        public void PauseRecording()
+        {
+            if (_recorder.IsRecording() && !_recorder.IsPaused())
+            {
+                _recorder.PauseRecording();
+                _iconBlinkTimer.Stop();
+                _logger.LogMessage("录音已暂停", "系统");
+            }
+        }
+
+        public void ResumeRecording()
+        {
+            if (_recorder.IsRecording() && _recorder.IsPaused())
+            {
+                _recorder.ResumeRecording();
+                _iconBlinkTimer.Start();
+                _logger.LogMessage("录音已恢复", "系统");
             }
         }
 

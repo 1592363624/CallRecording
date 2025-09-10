@@ -52,7 +52,7 @@
                 materialDesign:ExpanderAssist.HorizontalHeaderPadding="35,2,24,2"
                 Grid.Row="2"
                 Margin="10,5,10,5"
-                Header="系统配置信息"
+                Header="系统配置信息(大部分控件鼠标悬浮3秒有提示)"
                 IsExpanded="True">
                 <StackPanel Orientation="Vertical">
                     <TabControl>
@@ -155,7 +155,8 @@
                                                  Margin="0,0,10,0"
                                                  PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"
                                                  VerticalAlignment="Top"
-                                                 materialDesign:HintAssist.Hint="按下快捷键"
+                                                 ToolTip="设置快捷键用于启动或停止录制"
+                                                 materialDesign:HintAssist.Hint="启停录制"
                                                  TextAlignment="Center"
                                                  AcceptsReturn="True"
                                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
