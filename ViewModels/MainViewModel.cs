@@ -121,7 +121,18 @@ namespace CallRecording.ViewModels
 
             // 初始化时注册默认快捷键
             GlobalHotkey.RegisterHotkey(_currentHotkey);
-            GlobalHotkey.OnHotkeyPressed += ToggleRecording;
+            GlobalHotkey.OnHotkeyPressed += ToggleRecording; // 启停热键事件处理
+            GlobalHotkey.OnStopHotkeyPressed += StopRecordingHotkey; // 停止热键事件处理
+        }
+
+        // 停止录音热键处理函数
+        private void StopRecordingHotkey()
+        {
+            if (_recorder.IsRecording())
+            {
+                _iconBlinkTimer.Stop(); //通话录音的时候图标闪烁
+                StopRecording();
+            }
         }
 
         public void SetHotkey(Keys hotkey)
@@ -151,27 +162,26 @@ namespace CallRecording.ViewModels
                 if (_recorder.IsPaused())
                 {
                     // 如果当前是暂停状态，则恢复录音
-                    _logger.LogMessage($"快捷键触发录音-恢复录音", "系统");
+                    _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
                     ResumeRecording();
                 }
                 else
                 {
                     // 如果当前是录音状态，则暂停录音
-                    _logger.LogMessage($"快捷键触发录音-暂停录音", "系统");
+                    _iconBlinkTimer.Stop(); //通话录音的时候图标闪烁
                     PauseRecording();
                 }
             }
             else
             {
                 // 如果没有在录音，则开始录音
-                _logger.LogMessage($"快捷键触发录音-开始录音", "系统");
+                _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
                 StartRecording();
             }
         }
 
         public void StartRecording()
         {
-            _logger.LogMessage($"快捷键触发录音-开始录音", "系统");
             if (!_recorder.IsRecording())
             {
                 _recorder.StartRecording(RecordingSavePath, "通话"); //开始录音
@@ -185,7 +195,6 @@ namespace CallRecording.ViewModels
             {
                 _recorder.PauseRecording();
                 _iconBlinkTimer.Stop();
-                _logger.LogMessage("录音已暂停", "系统");
             }
         }
 
@@ -194,8 +203,7 @@ namespace CallRecording.ViewModels
             if (_recorder.IsRecording() && _recorder.IsPaused())
             {
                 _recorder.ResumeRecording();
-                _iconBlinkTimer.Start();
-                _logger.LogMessage("录音已恢复", "系统");
+                _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
             }
         }
 

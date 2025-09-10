@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -24,6 +24,7 @@ using Application = System.Windows.Application;
 using Clipboard = System.Windows.Clipboard;
 using Control = System.Windows.Forms.Control;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MessageBox = System.Windows.MessageBox;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Drawing.Point;
 
@@ -448,6 +449,14 @@ public partial class MainWindow : Window
         bool isCtrlPressed = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
         bool isAltPressed = Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt);
         bool isShiftPressed = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+
+        // 禁止使用Ctrl作为前缀
+        if (isCtrlPressed)
+        {
+            MessageBox.Show("录音快捷键不能以Ctrl作为前缀，请选择其他按键", "快捷键设置");
+            e.Handled = true;
+            return;
+        }
 
         // 构建快捷键字符串
         string hotkeyString = string.Empty;

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -15,10 +15,18 @@ public class GlobalHotkey
     private static HashSet<Keys> _registeredHotkeys = new HashSet<Keys>();
 
     public static event Action OnHotkeyPressed;
+    public static event Action OnStopHotkeyPressed;
 
     public static bool RegisterHotkey(Keys hotkey)
     {
-        if (_registeredHotkeys.Contains(hotkey))
+        // 不允许使用Ctrl作为前缀的键作为录音热键
+        // if ((hotkey & Keys.Control) == Keys.Control)
+        // {
+        //     MessageBox.Show("录音快捷键不能以Ctrl作为前缀，请选择其他按键", "快捷键设置");
+        //     return false;
+        // }
+
+        if (_registeredHotkeys.Contains(hotkey) || _registeredHotkeys.Contains(Keys.End))
         {
             MessageBox.Show("快捷键冲突, 请选择其他快捷键");
             return false; // 快捷键冲突
@@ -26,6 +34,7 @@ public class GlobalHotkey
 
         _hotkey = hotkey;
         _registeredHotkeys.Add(hotkey);
+        _registeredHotkeys.Add(Keys.End); // 同时注册Ctrl+hotkey作为停止热键
         _hookID = SetHook(_proc);
         return true;
     }
@@ -36,6 +45,7 @@ public class GlobalHotkey
         {
             UnhookWindowsHookEx(_hookID);
             _registeredHotkeys.Remove(_hotkey);
+            _registeredHotkeys.Remove(Keys.End);
             _hookID = IntPtr.Zero;
         }
     }
@@ -56,9 +66,20 @@ public class GlobalHotkey
         if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
         {
             int vkCode = Marshal.ReadInt32(lParam);
-            if ((Keys)vkCode == _hotkey)
+            Keys key = (Keys)vkCode;
+
+            // 检查是否匹配普通热键
+            if (key == _hotkey)
             {
                 OnHotkeyPressed?.Invoke();
+                return (IntPtr)1; // 表示已处理该消息
+            }
+
+            // 检查是否匹配END热键（停止热键）
+            if (key == (Keys.End))
+            {
+                OnStopHotkeyPressed?.Invoke();
+                return (IntPtr)1; // 表示已处理该消息
             }
         }
 
