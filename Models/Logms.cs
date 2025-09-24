@@ -1,13 +1,17 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 
 namespace CallRecording.Models
 {
-    public class Logger
+    public class Logms
     {
         private readonly ObservableCollection<string> _logs;
 
-        public Logger(ObservableCollection<string> logs)
+        public Logms()
+        {
+            _logs = new ObservableCollection<string>();
+        }
+
+        public Logms(ObservableCollection<string> logs)
         {
             _logs = logs;
         }

@@ -25,7 +25,7 @@ namespace CallRecording.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private readonly Logger _logger;
+        private readonly Logms _logms;
         private readonly Recorder _recorder;
         private Icon _defaultIcon;
         private Timer _iconBlinkTimer;
@@ -42,7 +42,7 @@ namespace CallRecording.ViewModels
         public MainViewModel()
         {
             Logs = new ObservableCollection<string>();
-            _logger = new Logger(Logs);
+            _logms = new Logms(Logs);
 
             // 添加音频格式选项
             AudioFormats = new List<AudioFormat>
@@ -78,13 +78,13 @@ namespace CallRecording.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogMessage($"启动通知发送失败: {ex.Message}", "警告(不影响使用)");
+                _logms.LogMessage($"启动通知发送失败: {ex.Message}", "警告(不影响使用)");
             }
 
             // 设置系统托盘图标
             bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
 
-            _notifyIcon = TrayIconService.SetupTrayIcon(_logger, !isStealth, ShowApp, ExitApp);
+            _notifyIcon = TrayIconService.SetupTrayIcon(_logms, !isStealth, ShowApp, ExitApp);
 
             // 初始化托盘图标
             _defaultIcon = _notifyIcon.Icon; // 假设初始图标已经在_setupTrayIcon中设置
@@ -103,10 +103,10 @@ namespace CallRecording.ViewModels
             // 初始化窗口监控
             InitializeWindowMonitor();
             Utils.软件启动次数add();
-            _logger.LogMessage($"欢迎使用通话录音助手( ＾∀＾）／欢迎＼( ＾∀＾）", "通知");
+            _logms.LogMessage($"欢迎使用通话录音助手( ＾∀＾）／欢迎＼( ＾∀＾）", "通知");
 
             // 创建 Recorder 实例
-            _recorder = new Recorder(_logger, _selectedFormat);
+            _recorder = new Recorder(_logms, _selectedFormat);
 
             //读取最后使用的音频格式
             Application.Current.Dispatcher.Invoke(() =>
@@ -236,7 +236,7 @@ namespace CallRecording.ViewModels
         private void OpenAudioManager()
         {
             var managerWindow = new AudioManagerWindow();
-            var managerViewModel = new AudioManagerViewModel(_logger);
+            var managerViewModel = new AudioManagerViewModel(_logms);
             managerWindow.DataContext = managerViewModel;
             managerWindow.Show();
         }
@@ -253,7 +253,7 @@ namespace CallRecording.ViewModels
                 {
                     RecordingSavePath = dialog.SelectedPath;
                     ConfigurationHelper.SetSetting("OutputDirectory", RecordingSavePath);
-                    _logger.LogMessage($"录音文件保存位置已设置为: {RecordingSavePath}", "设置");
+                    _logms.LogMessage($"录音文件保存位置已设置为: {RecordingSavePath}", "设置");
                 }
             }
         }
@@ -265,7 +265,7 @@ namespace CallRecording.ViewModels
             Application.Current.Dispatcher.Invoke(() =>
             {
                 Logs.Clear();
-                _logger.LogMessage("日志已清除。", "设置");
+                _logms.LogMessage("日志已清除。", "设置");
             });
         }
 
@@ -338,7 +338,7 @@ namespace CallRecording.ViewModels
             }
             catch (Exception ex)
             {
-                _logger?.LogMessage($"创建快捷方式失败: {ex.Message}", "错误");
+                _logms?.LogMessage($"创建快捷方式失败: {ex.Message}", "错误");
             }
             finally
             {
@@ -356,7 +356,7 @@ namespace CallRecording.ViewModels
                 Application.Current.MainWindow?.Show();
                 Application.Current.MainWindow.WindowState = WindowState.Normal;
                 Application.Current.MainWindow.Activate();
-                //_logger.LogMessage("应用程序窗口已显示。", "系统");
+                //_logms.LogMessage("应用程序窗口已显示。", "系统");
             });
         }
 
@@ -366,7 +366,7 @@ namespace CallRecording.ViewModels
             GlobalHotkey.UnregisterHotkey();
             Application.Current.Dispatcher.Invoke(() =>
             {
-                _logger.LogMessage("退出应用程序。", "系统");
+                _logms.LogMessage("退出应用程序。", "系统");
                 TrayIconService.CleanupTrayIcon(_notifyIcon);
                 _windowMonitor.Dispose();
                 Application.Current.Shutdown();
@@ -445,7 +445,7 @@ namespace CallRecording.ViewModels
             {
                 if (title != "语音通话")
                 {
-                    // _logger.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
+                    // _logms.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
                     Debug.WriteLine($"检测到QQNT窗口: {title},但不是语音通话窗口,不进行通话录音");
                     return;
                 }
@@ -459,7 +459,7 @@ namespace CallRecording.ViewModels
             //     {
             //         if (width != 640 && height != 480)
             //         {
-            //             // _logger.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
+            //             // _logms.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
             //             Debug.WriteLine($"检测到微信测试版窗口: {title}width{width}height{height},但不是语音通话窗口,不进行通话录音");
             //             return;
             //         }
@@ -467,7 +467,7 @@ namespace CallRecording.ViewModels
             // }
             // 软件适配微调
 
-            _logger.LogMessage($"检测到通话窗口: {title}", "系统");
+            _logms.LogMessage($"检测到通话窗口: {title}", "系统");
             if (!_recorder.IsRecording())
             {
                 _recorder.StartRecording(RecordingSavePath, "通话"); //开始录音
@@ -486,7 +486,7 @@ namespace CallRecording.ViewModels
         {
             if (_recorder.IsRecording())
             {
-                _logger.LogMessage("通话结束，停止录音并保存文件。", "系统"); //停止录音
+                _logms.LogMessage("通话结束，停止录音并保存文件。", "系统"); //停止录音
                 _recorder.StopRecording();
                 _iconBlinkTimer.Stop(); // 停止图标闪烁
                 _notifyIcon.Icon = _defaultIcon; // 恢复为默认图标
@@ -517,16 +517,16 @@ namespace CallRecording.ViewModels
                 if (result == MessageBoxResult.OK)
                 {
                     StopRecording();
-                    _logger.LogMessage($"所选录制音频格式已更改为: {value}", "用户确认更改音频格式");
+                    _logms.LogMessage($"所选录制音频格式已更改为: {value}", "用户确认更改音频格式");
                 }
                 else if (result == MessageBoxResult.Cancel)
                 {
-                    _logger.LogMessage($"用户已取消更改所选录制音频格式", "用户取消更改音频格式");
+                    _logms.LogMessage($"用户已取消更改所选录制音频格式", "用户取消更改音频格式");
                 }
             }
 
             _recorder.UpdateAudioFormat(value);
-            _logger.LogMessage($"所选录制音频格式已更改为: {value}", "设置更改");
+            _logms.LogMessage($"所选录制音频格式已更改为: {value}", "设置更改");
         }
     }
 }

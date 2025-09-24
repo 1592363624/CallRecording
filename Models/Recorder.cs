@@ -14,7 +14,7 @@ namespace CallRecording.Models
         }
 
         private readonly object _lockObject = new();
-        private readonly Logger _logger;
+        private readonly Logms _logms;
         private bool _isMixing = false;
         private bool _isRecording;
         private bool _isPaused = false; // 添加暂停状态标志
@@ -29,9 +29,9 @@ namespace CallRecording.Models
         private WaveFileWriter _waveMicrophoneFile;
         private WaveFileWriter _waveSpeakerFile;
 
-        public Recorder(Logger logger, AudioFormat selectedFormat)
+        public Recorder(Logms logms, AudioFormat selectedFormat)
         {
-            _logger = logger;
+            _logms = logms;
             _selectedFormat = selectedFormat;
         }
 
@@ -100,13 +100,14 @@ namespace CallRecording.Models
                     _loopbackSource.StartRecording();
                     _microphoneSource.StartRecording();
                     _isRecording = true;
+                    GlobalsVariables.是否正在录音 = true;
                     _isPaused = false; // 重置暂停状态
 
-                    _logger.LogMessage("开始录音...", softwareName);
+                    _logms.LogMessage("开始录音...", softwareName);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogMessage($"初始化录音源时发生异常: {ex.Message}", "录音器");
+                    _logms.LogMessage($"初始化录音源时发生异常: {ex.Message}", "录音器");
                     Cleanup();
                 }
             }
@@ -123,13 +124,13 @@ namespace CallRecording.Models
                     Cleanup();
 
                     if (e.Exception != null)
-                        _logger.LogMessage($"录音停止时发生异常: {e.Exception.Message}", "录音器");
+                        _logms.LogMessage($"录音停止时发生异常: {e.Exception.Message}", "录音器");
                     else
                         MixAudio();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogMessage($"在处理录音停止事件时发生异常: {ex.Message}", "录音器");
+                    _logms.LogMessage($"在处理录音停止事件时发生异常: {ex.Message}", "录音器");
                 }
             }
         }
@@ -144,14 +145,15 @@ namespace CallRecording.Models
                 {
                     _loopbackSource?.StopRecording();
                     _microphoneSource?.StopRecording();
-                    _logger.LogMessage("录音停止，文件已保存。", "录音器");
+                    _logms.LogMessage("录音停止，文件已保存。", "录音器");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogMessage($"停止录音时发生异常: {ex.Message}", "录音器");
+                    _logms.LogMessage($"停止录音时发生异常: {ex.Message}", "录音器");
                 }
 
                 _isRecording = false;
+                GlobalsVariables.是否正在录音 = false;
                 _isPaused = false; // 重置暂停状态
             }
         }
@@ -164,7 +166,8 @@ namespace CallRecording.Models
                 if (!_isRecording || _isPaused) return;
 
                 _isPaused = true;
-                _logger.LogMessage("录音已暂停", "录音器");
+                GlobalsVariables.是否正在录音 = false;
+                _logms.LogMessage("录音已暂停", "录音器");
             }
         }
 
@@ -176,7 +179,8 @@ namespace CallRecording.Models
                 if (!_isRecording || !_isPaused) return;
 
                 _isPaused = false;
-                _logger.LogMessage("录音已恢复", "录音器");
+                GlobalsVariables.是否正在录音 = true;
+                _logms.LogMessage("录音已恢复,正在继续录音", "录音器");
             }
         }
 
@@ -341,7 +345,7 @@ namespace CallRecording.Models
                     }
                 }
 
-                _logger.LogMessage($"混音已完成，文件保存到: {_outputMixedFileName}", "录音器");
+                _logms.LogMessage($"混音已完成，文件保存到: {_outputMixedFileName}", "录音器");
 
                 // 等待文件流完全释放
                 Thread.Sleep(1000);
@@ -352,7 +356,7 @@ namespace CallRecording.Models
             }
             catch (Exception ex)
             {
-                _logger.LogMessage($"混音过程中发生异常: {ex.Message}", "录音器");
+                _logms.LogMessage($"混音过程中发生异常: {ex.Message}", "录音器");
             }
         }
 
@@ -384,7 +388,7 @@ namespace CallRecording.Models
             }
             catch (Exception ex)
             {
-                _logger.LogMessage($"删除文件时发生异常: {ex.Message}", "录音器");
+                _logms.LogMessage($"删除文件时发生异常: {ex.Message}", "录音器");
             }
         }
     }

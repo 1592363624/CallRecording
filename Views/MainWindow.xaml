@@ -155,7 +155,7 @@
                                                  Margin="0,0,10,0"
                                                  PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"
                                                  VerticalAlignment="Top"
-                                                 ToolTip="设置快捷键用于启动或停止录制"
+                                                 ToolTip="设置快捷键用于启动或停止录制(Ctrl+END为默认的结束录制快捷键)"
                                                  materialDesign:HintAssist.Hint="启停录制"
                                                  TextAlignment="Center"
                                                  AcceptsReturn="True"
@@ -253,17 +253,15 @@
                         <TabItem Header="关于软件">
                             <StackPanel>
                                 <TextBlock FontSize="20" Foreground="Red" Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
-                                <TextBlock FontSize="20" Foreground="Green" TextWrapping="Wrap"
-                                           Text="不太推荐使用测试版的软件,例如微信测试版,他像QQNT一样重构了更换了开发框架,程序会有很大的变化,可能会有适配问题" />
-                                <TextBlock FontSize="20" Foreground="Red">
-                                    <Run Text="去帖子支持作者:" />
+                                <TextBlock FontSize="20" Foreground="Green">
+                                    <Run Text="去帖子支持作者查看详情:" />
                                     <Hyperlink
-                                        NavigateUri="https://www.52pojie.cn/thread-1941879-1-1.html"
+                                        NavigateUri="https://zy.52shell.ltd/62.html"
                                         RequestNavigate="Hyperlink_RequestNavigate"><!-- TextDecorations="{x:Null}" -->  <!-- 移除默认下划线 -->
-                                        52pojie.cn
+                                        点击此处跳转
                                     </Hyperlink>
                                 </TextBlock>
-                                <TextBlock FontSize="20" Foreground="Red">
+                                <TextBlock FontSize="20" Foreground="#E3B341">
                                     <Run Text="Star/Bug/需求-提交:" />
                                     <Hyperlink
                                         NavigateUri="https://github.com/1592363624/CallRecording/issues"
@@ -272,12 +270,13 @@
                                     </Hyperlink>
                                 </TextBlock>
                                 <TextBlock FontSize="20">
-                                    <Run Text="问题反馈邮箱:" Foreground="Blue" />
+                                    <Run Text="问题反馈邮箱:" Foreground="DodgerBlue" />
                                     <Hyperlink NavigateUri="mailto:1592363624@qq.com"
                                                RequestNavigate="Hyperlink_RequestNavigate">
                                         1592363624@qq.com
                                     </Hyperlink>
                                 </TextBlock>
+                                <TextBlock FontSize="20" Foreground="Red" Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
                             </StackPanel>
                         </TabItem>
                     </TabControl>

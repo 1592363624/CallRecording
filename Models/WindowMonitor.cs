@@ -2,12 +2,15 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using CallRecording.Models;
+using NLog;
 
 namespace CallRecording.Services
 {
     public class WindowMonitor : IDisposable
     {
-        private readonly Logger _logger;
+        private readonly Logms _logms;
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
 
         // 定义WinEventProc回调函数委托
         private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject,
@@ -40,6 +43,8 @@ namespace CallRecording.Services
         const uint EVENT_OBJECT_SHOW = 0x8002;
         const uint EVENT_OBJECT_HIDE = 0x8003;
         const uint WINEVENT_OUTOFCONTEXT = 0;
+        const int OBJID_WINDOW = 0;
+
 
         // 窗口钩子句柄
         private IntPtr hWinEventHook;
@@ -62,6 +67,7 @@ namespace CallRecording.Services
             procDelegate = new WinEventDelegate(WinEventProc);
             hWinEventHook = SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_HIDE, IntPtr.Zero, procDelegate, 0, 0,
                 WINEVENT_OUTOFCONTEXT);
+            _logms = new Logms();
         }
 
         private readonly Dictionary<IntPtr, DateTime> _pendingWindows = new();
@@ -69,6 +75,9 @@ namespace CallRecording.Services
         public void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild,
             uint dwEventThread, uint dwmsEventTime)
         {
+            if (idObject != OBJID_WINDOW) return; // 忽略子控件
+
+
             StringBuilder className = new StringBuilder(256);
             GetClassName(hwnd, className, className.Capacity);
 
@@ -80,26 +89,35 @@ namespace CallRecording.Services
                 string processName = process.ProcessName;
                 string windowTitle = WindowInfo.GetWindowTitle(hwnd);
                 bool titleMatch = TargetTitles.Any(title => windowTitle.Contains(title));
+
+                logger.Info($"检测到窗口事件: {eventType}, 窗口句柄: {hwnd}, 进程名: {processName}, 窗口标题: {windowTitle}");
+
                 if (TargetClassNames.Contains(className.ToString()) && TargetProcessNames.Contains(processName) &&
                     titleMatch)
                 {
+                    logger.Info($"匹配到目标窗口: {processName}, {windowTitle}");
+
                     if (eventType == EVENT_OBJECT_CREATE || eventType == EVENT_OBJECT_SHOW)
                     {
+                        logger.Info($"窗口创建: {processName}, {windowTitle}");
                         WindowCreated?.Invoke(this, hwnd);
                     }
                     else if (eventType == EVENT_OBJECT_DESTROY || eventType == EVENT_OBJECT_HIDE)
                     {
+                        logger.Info($"窗口销毁: {processName}, {windowTitle}");
                         WindowDestroyed?.Invoke(this, hwnd);
                     }
                 }
             }
             catch (ArgumentException ex)
             {
-                // _logger.LogMessage($"(警告)无法获取进程名: {ex.Message}", "系统");
+                logger.Error($"(警告)无法获取进程名: {ex.Message}");
+                _logms.LogMessage($"(警告)无法获取进程名: {ex.Message}", "系统");
             }
             catch (Exception ex)
             {
-                // _logger.LogMessage($"(警告)未知错误: {ex.Message}", "系统");
+                logger.Error($"(警告)未知错误: {ex.Message}");
+                _logms.LogMessage($"(警告)未知错误: {ex.Message}", "系统");
             }
         }
 

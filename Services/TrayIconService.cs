@@ -8,12 +8,12 @@ namespace CallRecording.Services;
 public static class TrayIconService
 {
     // 设置系统托盘图标和上下文菜单
-    public static NotifyIcon SetupTrayIcon(Logger logger, bool isStealth, EventHandler showAppHandler,
+    public static NotifyIcon SetupTrayIcon(Logms logms, bool isStealth, EventHandler showAppHandler,
         EventHandler exitAppHandler)
     {
         var notifyIcon = new NotifyIcon
         {
-            Icon = LoadIcon(logger), // 加载图标
+            Icon = LoadIcon(logms), // 加载图标
             Visible = isStealth,
             Text = "通话录音助手"
         };
@@ -36,14 +36,14 @@ public static class TrayIconService
     }
 
     // 从嵌入资源加载图标
-    private static Icon LoadIcon(Logger logger)
+    private static Icon LoadIcon(Logms logms)
     {
         var assembly = Assembly.GetExecutingAssembly();
         using (var stream = assembly.GetManifestResourceStream("CallRecording.src.通用软件图片.ico"))
         {
             if (stream == null)
             {
-                logger.LogMessage("无法加载图标资源。", "系统托盘图标");
+                logms.LogMessage("无法加载图标资源。", "系统托盘图标");
                 return null;
             }
 

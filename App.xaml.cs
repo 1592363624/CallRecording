@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using CallRecording.Models;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using MySharedProject;
 using MySharedProject.Model;
 using MySharedProject.Model.MyAuth;
+using NLog;
 
 namespace CallRecording;
 
@@ -25,10 +27,24 @@ public partial class App : Application
 
     string? reftoken;
     public IConfiguration Configuration { get; private set; }
+    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        logger.Info("程序启动");
+
+        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+        {
+            File.AppendAllText("Exception.log", $"{DateTime.Now}\n{e.ExceptionObject}\n");
+        };
+
+        TaskScheduler.UnobservedTaskException += (s, e) =>
+        {
+            File.AppendAllText("Exception.log", $"{DateTime.Now}\n{e.Exception}\n");
+            e.SetObserved();
+        };
+
 
         //禁止重复运行
         if (Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName).Length > 1)

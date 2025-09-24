@@ -20,7 +20,7 @@ namespace CallRecording.ViewModels
         private double duration;
         private string timeDisplay;
         private string playButtonText;
-        private readonly Logger logger;
+        private readonly Logms _logms;
 
         public ICommand PlayPauseCommand { get; }
         public ICommand RewindCommand { get; }
@@ -75,9 +75,9 @@ namespace CallRecording.ViewModels
             set => SetProperty(ref playButtonText, value);
         }
 
-        public AudioPlayerViewModel(Logger logger)
+        public AudioPlayerViewModel(Logms logms)
         {
-            this.logger = logger;
+            this._logms = logms;
             PlayButtonText = "▶";
             Duration = 100; // 设置滑块最大值
 
@@ -130,11 +130,11 @@ namespace CallRecording.ViewModels
                 UpdateTimeDisplay();
                 IsPlaying = false;
 
-                logger.LogMessage($"已加载音频文件: {Path.GetFileName(filePath)}", "音频预览");
+                _logms.LogMessage($"已加载音频文件: {Path.GetFileName(filePath)}", "音频预览");
             }
             catch (Exception ex)
             {
-                logger.LogMessage($"加载音频文件时出错: {ex.Message}", "音频预览");
+                _logms.LogMessage($"加载音频文件时出错: {ex.Message}", "音频预览");
             }
         }
 
@@ -219,7 +219,7 @@ namespace CallRecording.ViewModels
             }
             catch (Exception ex)
             {
-                logger.LogMessage($"清理音频资源时出错: {ex.Message}", "音频预览");
+                _logms.LogMessage($"清理音频资源时出错: {ex.Message}", "音频预览");
             }
         }
     }

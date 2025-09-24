@@ -23,7 +23,7 @@ namespace CallRecording.ViewModels
 
     public partial class AudioManagerViewModel : ObservableObject
     {
-        private readonly Logger logger;
+        private readonly Logms _logms;
         private string recordingsFolder;
         [ObservableProperty] private ObservableCollection<AudioFileInfo> audioFiles;
         [ObservableProperty] private string searchText;
@@ -41,9 +41,9 @@ namespace CallRecording.ViewModels
         public IRelayCommand<AudioFileInfo> DeleteCommand { get; }
         public IRelayCommand<AudioFileInfo> RenameCommand { get; }
 
-        public AudioManagerViewModel(Logger logger)
+        public AudioManagerViewModel(Logms logms)
         {
-            this.logger = logger;
+            this._logms = logms;
 
             // 设置默认值
             SelectedFormat = "全部";
@@ -110,7 +110,7 @@ namespace CallRecording.ViewModels
             }
             catch (Exception ex)
             {
-                logger.LogMessage($"加载音频文件时出错: {ex.Message}", "文件管理");
+                _logms.LogMessage($"加载音频文件时出错: {ex.Message}", "文件管理");
                 StatusText = "加载文件时出错";
             }
         }
@@ -180,7 +180,7 @@ namespace CallRecording.ViewModels
             }
             catch (Exception ex)
             {
-                logger.LogMessage($"搜索音频文件时出错: {ex.Message}", "文件管理");
+                _logms.LogMessage($"搜索音频文件时出错: {ex.Message}", "文件管理");
                 StatusText = "搜索文件时出错";
             }
         }
@@ -192,7 +192,7 @@ namespace CallRecording.ViewModels
             try
             {
                 var playerWindow = new AudioPlayerWindow();
-                var playerViewModel = new AudioPlayerViewModel(logger);
+                var playerViewModel = new AudioPlayerViewModel(_logms);
                 playerWindow.DataContext = playerViewModel;
                 playerViewModel.LoadFile(audioFile.FilePath);
                 playerWindow.Closed += (s, e) => playerViewModel.CleanupAudio();
@@ -202,7 +202,7 @@ namespace CallRecording.ViewModels
             }
             catch (Exception ex)
             {
-                logger.LogMessage($"播放音频文件时出错: {ex.Message}", "文件管理");
+                _logms.LogMessage($"播放音频文件时出错: {ex.Message}", "文件管理");
                 StatusText = "播放文件时出错";
             }
         }
@@ -224,12 +224,12 @@ namespace CallRecording.ViewModels
                 {
                     File.Copy(audioFile.FilePath, saveDialog.FileName, true);
                     StatusText = $"文件已导出至: {saveDialog.FileName}";
-                    logger.LogMessage($"文件已导出至: {saveDialog.FileName}", "文件管理");
+                    _logms.LogMessage($"文件已导出至: {saveDialog.FileName}", "文件管理");
                 }
             }
             catch (Exception ex)
             {
-                logger.LogMessage($"导出音频文件时出错: {ex.Message}", "文件管理");
+                _logms.LogMessage($"导出音频文件时出错: {ex.Message}", "文件管理");
                 StatusText = "导出文件时出错";
             }
         }
@@ -252,12 +252,12 @@ namespace CallRecording.ViewModels
                     AudioFiles.Remove(audioFile);
                     TotalFilesText = $"共 {AudioFiles.Count} 个文件";
                     StatusText = $"已删除: {audioFile.FileName}";
-                    logger.LogMessage($"已删除文件: {audioFile.FileName}", "文件管理");
+                    _logms.LogMessage($"已删除文件: {audioFile.FileName}", "文件管理");
                 }
             }
             catch (Exception ex)
             {
-                logger.LogMessage($"删除音频文件时出错: {ex.Message}", "文件管理");
+                _logms.LogMessage($"删除音频文件时出错: {ex.Message}", "文件管理");
                 StatusText = "删除文件时出错";
             }
         }
@@ -373,12 +373,12 @@ namespace CallRecording.ViewModels
                     }
 
                     StatusText = $"文件已重命名为: {newFullFileName}";
-                    logger.LogMessage($"文件已重命名为: {newFullFileName}", "文件管理");
+                    _logms.LogMessage($"文件已重命名为: {newFullFileName}", "文件管理");
                 }
             }
             catch (Exception ex)
             {
-                logger.LogMessage($"重命名音频文件时出错: {ex.Message}", "文件管理");
+                _logms.LogMessage($"重命名音频文件时出错: {ex.Message}", "文件管理");
                 StatusText = "重命名文件时出错";
             }
         }

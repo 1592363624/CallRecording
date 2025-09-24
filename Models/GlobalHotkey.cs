@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using CallRecording;
 
 public class GlobalHotkey
 {
@@ -34,7 +35,7 @@ public class GlobalHotkey
 
         _hotkey = hotkey;
         _registeredHotkeys.Add(hotkey);
-        _registeredHotkeys.Add(Keys.End); // 同时注册Ctrl+hotkey作为停止热键
+        _registeredHotkeys.Add(Keys.End); // 同时注册End作为停止热键
         _hookID = SetHook(_proc);
         return true;
     }
@@ -68,6 +69,9 @@ public class GlobalHotkey
             int vkCode = Marshal.ReadInt32(lParam);
             Keys key = (Keys)vkCode;
 
+            // 检查Ctrl键是否被按下
+            bool isCtrlPressed = (GetAsyncKeyState(Keys.ControlKey) & 0x8000) != 0;
+
             // 检查是否匹配普通热键
             if (key == _hotkey)
             {
@@ -75,8 +79,8 @@ public class GlobalHotkey
                 return (IntPtr)1; // 表示已处理该消息
             }
 
-            // 检查是否匹配END热键（停止热键）
-            if (key == (Keys.End))
+            // 检查是否匹配 Ctrl+End 热键（停止热键）
+            if (key == Keys.End && isCtrlPressed && GlobalsVariables.是否正在录音)
             {
                 OnStopHotkeyPressed?.Invoke();
                 return (IntPtr)1; // 表示已处理该消息
@@ -95,6 +99,9 @@ public class GlobalHotkey
 
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern short GetAsyncKeyState(Keys vKey);
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern IntPtr GetModuleHandle(string lpModuleName);
