@@ -2,7 +2,9 @@
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows;
 using Microsoft.Toolkit.Uwp.Notifications;
 using MySharedProject;
 using MySharedProject.Model;
@@ -14,9 +16,47 @@ namespace CallRecording.Models
     {
         private const string AppSettingsFileName = "appsettings.json";
 
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetDpiForWindow(IntPtr hWnd);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
         public static string GetFormattedTime()
         {
             return DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        }
+
+        /// <summary>
+        /// 获取窗口逻辑像素宽高（已考虑 DPI 缩放）
+        /// </summary>
+        /// <param name="hWnd">窗口句柄</param>
+        /// <returns>Size 宽高（逻辑像素）</returns>
+        public static Size GetWindowSize(IntPtr hWnd)
+        {
+            if (hWnd == IntPtr.Zero)
+                return new Size(0, 0);
+
+            if (!GetWindowRect(hWnd, out RECT rect))
+                return new Size(0, 0);
+
+            int width = rect.Right - rect.Left;
+            int height = rect.Bottom - rect.Top;
+
+            // 获取 DPI 缩放因子
+            double dpi = GetDpiForWindow(hWnd);
+            double scale = dpi / 96.0;
+
+            return new Size(width / scale, height / scale);
         }
 
         /// <summary>

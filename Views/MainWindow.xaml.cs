@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -20,6 +21,7 @@ using MySharedProject.Model.MyAuth;
 using MySharedProject.Utiles;
 using MySharedProject.ViewModels.MyAuth;
 using Newtonsoft.Json;
+using NLog;
 using Application = System.Windows.Application;
 using Clipboard = System.Windows.Clipboard;
 using Control = System.Windows.Forms.Control;
@@ -33,6 +35,7 @@ namespace CallRecording.Views;
 public partial class MainWindow : Window
 {
     private readonly ObservableCollection<string> _logs;
+    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
     bool 是否点击通知更新的确认按钮 = false;
 
@@ -335,11 +338,21 @@ public partial class MainWindow : Window
             StringBuilder windowTitle = new StringBuilder(256);
             GetWindowText(hWnd, windowTitle, windowTitle.Capacity);
 
+            if (process.ProcessName == "Weixin")
+            {
+                Size size = Utils.GetWindowSize(hWnd);
+                ConfigurationHelper.SetSetting("微信通话窗口宽度", size.Width.ToString(CultureInfo.InvariantCulture));
+                ConfigurationHelper.SetSetting("微信通话窗口高度", size.Height.ToString(CultureInfo.InvariantCulture));
+                logger.Info("已更新配置项:微信通话窗口宽度：" + size.Width + "，微信通话窗口高度：" + size.Height);
+            }
+
+
             ConfigurationHelper.SetSetting("监控窗口类名", ConfigurationHelper.GetSetting("监控窗口类名") + "|" + className);
             ConfigurationHelper.SetSetting("监控窗口进程名",
                 ConfigurationHelper.GetSetting("监控窗口进程名") + "|" + process.ProcessName);
             ConfigurationHelper.SetSetting("监控窗口标题",
                 ConfigurationHelper.GetSetting("监控窗口标题") + "|" + windowTitle);
+
 
             DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
             DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
