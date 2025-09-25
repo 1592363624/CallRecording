@@ -58,7 +58,6 @@ public partial class App : Application
         //初始化配置文件&补充新增配置项
         ConfigurationHelper.LoadConfiguration();
         Utils.InitAppsettings();
-        Console.WriteLine("测试输出内容");
 
         //可以屏蔽这段正常运行 因为是用的共享项目的代码
 

@@ -16,16 +16,46 @@ using IWshRuntimeLibrary;
 using MySharedProject;
 using MySharedProject.Model;
 using NLog;
-using Application = System.Windows.Application;
-using MessageBox = System.Windows.MessageBox;
 using static CallRecording.Models.Recorder;
+using Application = System.Windows.Application;
 using File = System.IO.File;
+using MessageBox = System.Windows.MessageBox;
 using Timer = System.Windows.Forms.Timer;
 
 namespace CallRecording.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDpiForWindow(IntPtr hWnd);
+
+
         private static Logms _logms;
         private readonly Recorder _recorder;
         private Icon _defaultIcon;
@@ -420,119 +450,93 @@ namespace CallRecording.ViewModels
             _windowMonitor.WindowDestroyed += OnWindowDestroyed;
         }
 
-        [DllImport("user32.dll")]
-        private static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-        [DllImport("user32.dll")]
-        static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
-
-        [DllImport("user32.dll")]
-        static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int x;
-            public int y;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct RECT
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
 
         // 窗口创建事件处理
         private void OnWindowCreated(object sender, IntPtr hwnd)
         {
+            // 获取窗口类名
             StringBuilder className = new StringBuilder(256);
             WindowMonitor.GetClassName(hwnd, className, className.Capacity);
 
+            // 获取窗口所属进程
             WindowMonitor.GetWindowThreadProcessId(hwnd, out uint processId);
             Process process = Process.GetProcessById((int)processId);
             string processName = process.ProcessName;
             string title = process.MainWindowTitle;
+
             int width = 0;
             int height = 0;
 
-            // if (hwnd != IntPtr.Zero)
-            // {
-            //     RECT rect;
-            //     if (GetWindowRect(hwnd, out rect))
-            //     {
-            //         width = rect.Right - rect.Left;
-            //         height = rect.Bottom - rect.Top;
-            //     }
-            // }
-
-            // RECT rect;
-            // if (GetClientRect(hwnd, out rect))
-            // {
-            //     POINT p = new POINT { x = rect.Left, y = rect.Top };
-            //     ClientToScreen(hwnd, ref p); // 客户区左上角转换到屏幕坐标
-            //      width = rect.Right - rect.Left;
-            //      height = rect.Bottom - rect.Top;
-            // }
-
-
-            if (hwnd != IntPtr.Zero)
+            RECT clientRect;
+            if (GetClientRect(hwnd, out clientRect))
             {
-                RECT rect;
-                if (GetClientRect(hwnd, out rect))
-                {
-                    // 转换左上角为屏幕坐标
-                    POINT pt = new POINT { x = rect.Left, y = rect.Top };
-                    ClientToScreen(hwnd, ref pt);
+                int clientWidth = clientRect.Right - clientRect.Left;
+                int clientHeight = clientRect.Bottom - clientRect.Top;
 
-                    width = rect.Right - rect.Left;
-                    height = rect.Bottom - rect.Top;
+                // 自动调整竖屏/横屏逻辑：长边作为高度，短边作为宽度
+                width = Math.Min(clientWidth, clientHeight);
+                height = Math.Max(clientWidth, clientHeight);
 
-                    Console.WriteLine($"客户区大小: {width} x {height}");
-                    Console.WriteLine($"客户区屏幕位置: ({pt.x}, {pt.y})");
-                }
+                Debug.WriteLine($"窗口: {title}, 客户区尺寸（竖屏逻辑）: {width}x{height}");
             }
 
-
             // 软件适配微调
-            if (processName == "QQ") //QQNT
+            if (processName == "QQ") // QQNT
             {
                 if (title != "语音通话")
                 {
-                    // _logms.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
-                    Debug.WriteLine($"检测到QQNT窗口: {title},但不是语音通话窗口,不进行通话录音");
+                    Debug.WriteLine($"检测到QQNT窗口: {title}, 不是语音通话窗口, 不录音");
                     return;
                 }
             }
 
-            if (processName == "Weixin") //微信测试版4.0.3.22
+            if (processName == "Weixin") // 微信测试版
             {
-                //     //360 * 640
-                //     //640 * 480
-                if (width != 360 && height != 640)
+                //if (!((width == 360 && height == 640) || (width == 640 && height == 480)))
+                //{
+                //    Debug.WriteLine($"检测到微信窗口: {title}, 尺寸不符合, 不录音");
+                //    return;
+                //}
+
+                //if (width != 360 && height != 640)
+                //{
+                //    Debug.WriteLine($"检测到微信窗口: {title}, 尺寸不符合, 不录音");
+                //    return;
+                //}
+
+                int w = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口宽度"));
+                int h = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口高度"));
+                if (width != w && height != h)
                 {
-                    if (width != 640 && height != 480)
-                    {
-                        // _logms.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
-                        Debug.WriteLine($"检测到微信测试版窗口: {title}width{width}height{height},但不是语音通话窗口,不进行通话录音");
-                        return;
-                    }
+                    Debug.WriteLine($"检测到微信窗口: {title}, 尺寸不符合, 不录音");
+                    //_logms.LogMessage($"检测到微信窗口: {title}, 宽高: {width}x{height}", "系统");
+                    logger.Debug($"检测到微信窗口: {title}, 宽高: {width}x{height}");
+                    return;
                 }
             }
-            // 软件适配微调
 
+            // 通过这里判定为通话窗口
+            Debug.WriteLine($"检测到通话窗口: {title}，宽高: {width}x{height}");
             _logms.LogMessage($"检测到通话窗口: {title}", "系统");
+
+            // 开始录音
             if (!_recorder.IsRecording())
             {
-                _recorder.StartRecording(RecordingSavePath, "通话"); //开始录音
-                _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
+                _recorder.StartRecording(RecordingSavePath, "通话"); // 开始录音
+                _iconBlinkTimer.Start(); // 通话录音时图标闪烁
             }
         }
+
+        // Win32 DPI 相关函数
+        [DllImport("user32.dll")]
+        static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("gdi32.dll")]
+        static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
 
         // 窗口销毁事件处理
         private void OnWindowDestroyed(object sender, IntPtr hwnd)

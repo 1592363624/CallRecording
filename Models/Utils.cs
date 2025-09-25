@@ -450,6 +450,16 @@ exit
                 ConfigurationHelper.SetSetting("监控通话次数", "0");
             }
 
+            if (ConfigurationHelper.GetSetting("微信通话窗口宽度") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("微信通话窗口宽度", "360");
+            }
+
+            if (ConfigurationHelper.GetSetting("微信通话窗口高度") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("微信通话窗口高度", "640");
+            }
+
             if (ConfigurationHelper.GetSetting("监控窗口类名") == "NULL")
             {
                 ConfigurationHelper.SetSetting("监控窗口类名", "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon|要监控的窗口类名");
