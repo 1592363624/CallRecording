@@ -97,6 +97,9 @@ namespace CallRecording.Services
                         GetClassName(evt.Hwnd, className, className.Capacity);
                         string windowTitle = WindowInfo.GetWindowTitle(evt.Hwnd);
 
+                        logger.Info($"检测到窗口事件(所有事件): {processName}, {windowTitle}, {className}");
+
+
                         bool titleMatch = TargetTitles.Count == 0 || TargetTitles.Exists(t => windowTitle.Contains(t));
                         if (!TargetClassNames.Contains(className.ToString()) ||
                             !TargetProcessNames.Contains(processName) ||

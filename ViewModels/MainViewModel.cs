@@ -15,6 +15,7 @@ using CommunityToolkit.Mvvm.Input;
 using IWshRuntimeLibrary;
 using MySharedProject;
 using MySharedProject.Model;
+using NLog;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using static CallRecording.Models.Recorder;
@@ -25,7 +26,7 @@ namespace CallRecording.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private readonly Logms _logms;
+        private static Logms _logms;
         private readonly Recorder _recorder;
         private Icon _defaultIcon;
         private Timer _iconBlinkTimer;
@@ -74,7 +75,7 @@ namespace CallRecording.ViewModels
             try
             {
                 // 显示启动通知
-                NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处关闭通知!");
+                NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处可提前关闭通知!");
             }
             catch (Exception ex)
             {
@@ -214,6 +215,22 @@ namespace CallRecording.ViewModels
         }
 
         public List<AudioFormat> AudioFormats { get; }
+
+        public ObservableCollection<LogLevel> AvailableLogLevels { get; } =
+            new ObservableCollection<LogLevel>
+            {
+                LogLevel.Off,
+                LogLevel.Info,
+                LogLevel.Debug
+            };
+
+        [ObservableProperty] private LogLevel selectedLogLevel = LogLevel.Off;
+
+        partial void OnSelectedLogLevelChanged(LogLevel value)
+        {
+            Utils.SetGlobalLogLevel(value);
+            _logms.LogMessage($"日志等级已切换,当前日志等级: " + value, "系统设置");
+        }
 
         public ObservableCollection<string> Logs { get; }
 
@@ -409,6 +426,19 @@ namespace CallRecording.ViewModels
         [DllImport("user32.dll")]
         private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
+        [DllImport("user32.dll")]
+        static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int x;
+            public int y;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct RECT
         {
@@ -430,15 +460,44 @@ namespace CallRecording.ViewModels
             string title = process.MainWindowTitle;
             int width = 0;
             int height = 0;
+
+            // if (hwnd != IntPtr.Zero)
+            // {
+            //     RECT rect;
+            //     if (GetWindowRect(hwnd, out rect))
+            //     {
+            //         width = rect.Right - rect.Left;
+            //         height = rect.Bottom - rect.Top;
+            //     }
+            // }
+
+            // RECT rect;
+            // if (GetClientRect(hwnd, out rect))
+            // {
+            //     POINT p = new POINT { x = rect.Left, y = rect.Top };
+            //     ClientToScreen(hwnd, ref p); // 客户区左上角转换到屏幕坐标
+            //      width = rect.Right - rect.Left;
+            //      height = rect.Bottom - rect.Top;
+            // }
+
+
             if (hwnd != IntPtr.Zero)
             {
                 RECT rect;
-                if (GetWindowRect(hwnd, out rect))
+                if (GetClientRect(hwnd, out rect))
                 {
+                    // 转换左上角为屏幕坐标
+                    POINT pt = new POINT { x = rect.Left, y = rect.Top };
+                    ClientToScreen(hwnd, ref pt);
+
                     width = rect.Right - rect.Left;
                     height = rect.Bottom - rect.Top;
+
+                    Console.WriteLine($"客户区大小: {width} x {height}");
+                    Console.WriteLine($"客户区屏幕位置: ({pt.x}, {pt.y})");
                 }
             }
+
 
             // 软件适配微调
             if (processName == "QQ") //QQNT
@@ -451,20 +510,20 @@ namespace CallRecording.ViewModels
                 }
             }
 
-            // if (processName == "Weixin") //微信测试版
-            // {
-            //     //360 * 640
-            //     //640 * 480
-            //     if (width != 360 && height != 640)
-            //     {
-            //         if (width != 640 && height != 480)
-            //         {
-            //             // _logms.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
-            //             Debug.WriteLine($"检测到微信测试版窗口: {title}width{width}height{height},但不是语音通话窗口,不进行通话录音");
-            //             return;
-            //         }
-            //     }
-            // }
+            if (processName == "Weixin") //微信测试版4.0.3.22
+            {
+                //     //360 * 640
+                //     //640 * 480
+                if (width != 360 && height != 640)
+                {
+                    if (width != 640 && height != 480)
+                    {
+                        // _logms.LogMessage($"检测到QQ窗口: {title},但不是语音通话窗口,不进行通话录音", "系统");
+                        Debug.WriteLine($"检测到微信测试版窗口: {title}width{width}height{height},但不是语音通话窗口,不进行通话录音");
+                        return;
+                    }
+                }
+            }
             // 软件适配微调
 
             _logms.LogMessage($"检测到通话窗口: {title}", "系统");

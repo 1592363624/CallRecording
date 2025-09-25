@@ -1,7 +1,9 @@
-﻿using System.Windows;
+﻿using System.Collections.ObjectModel;
+using System.Windows;
 using CallRecording.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MySharedProject.Model;
+using NLog;
 
 namespace CallRecording.ViewModels
 {
@@ -35,6 +37,7 @@ namespace CallRecording.ViewModels
         [ObservableProperty] public bool _isWeChatWorkChecked;
 
         [ObservableProperty] public bool _isQQChecked;
+        [ObservableProperty] public bool _isLog = false;
 
         private int 判断软件是否刚启动 = 0;
 
@@ -163,6 +166,30 @@ namespace CallRecording.ViewModels
                     IusedSpaceFM = Utils.FormatSize(Utils.GetFolderSize(path));
                 });
             });
+        }
+
+        public static class LogLevelOptions
+        {
+            public static readonly LogLevel[] Levels = new[]
+            {
+                LogLevel.Off,
+                LogLevel.Info,
+                LogLevel.Debug
+            };
+        }
+
+
+        public partial class LogViewModel : ObservableObject
+        {
+            public ObservableCollection<LogLevel> LogLevels { get; } =
+                new ObservableCollection<LogLevel>(new[] { LogLevel.Off, LogLevel.Info, LogLevel.Debug });
+
+            [ObservableProperty] private LogLevel selectedLogLevel = LogLevel.Info;
+
+            partial void OnSelectedLogLevelChanged(LogLevel value)
+            {
+                Utils.SetGlobalLogLevel(value); // 参数类型完全一致
+            }
         }
     }
 }

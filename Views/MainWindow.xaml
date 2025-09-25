@@ -8,7 +8,7 @@
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     Style="{StaticResource MaterialDesignWindow}"
     Title="{DynamicResource WindowTitle}"
-    Width="800"
+    Width="900"
     Height="650"
     Background="#F0F0F0"
     FontFamily="Microsoft YaHei"
@@ -200,6 +200,20 @@
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
+
+                                    <ComboBox
+                                        x:Name="Loglvl"
+                                        Margin="10,0,0,0"
+                                        ItemsSource="{Binding AvailableLogLevels}"
+                                        SelectedItem="{Binding SelectedLogLevel, Mode=TwoWay}"
+                                        ToolTip="写日志默认是关闭状态,主要用于有问题的时候调试">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+
                                 </StackPanel>
 
                                 <Grid Grid.Row="1" x:Name="MonitorLst">

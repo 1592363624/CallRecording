@@ -62,6 +62,7 @@ public partial class MainWindow : Window
             Onlineidentification.DataContext = app;
             Diskoccupancyinformation.DataContext = MonitorLst.DataContext = DataSource.gbmvvm;
             Button_OpenAudioManager.DataContext = mainViewModel;
+            Loglvl.DataContext = mainViewModel;
             DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
             DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
             DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
@@ -477,4 +478,9 @@ public partial class MainWindow : Window
         // 阻止事件继续传递
         e.Handled = true;
     }
+
+    // private void Loglevel_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    // {
+    //     Utils.SetGlobalLogLevel(Loglevel.SelectedItem);
+    // }
 }

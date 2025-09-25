@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.Toolkit.Uwp.Notifications;
 using MySharedProject;
 using MySharedProject.Model;
+using NLog;
 
 namespace CallRecording.Models
 {
@@ -28,6 +29,36 @@ namespace CallRecording.Models
                 .AddText(AddText)
                 .Show();
         }
+
+
+        /// <summary>
+        /// 运行时修改全局 NLog 等级
+        /// </summary>
+        public static void SetGlobalLogLevel(LogLevel nlogLevel)
+        {
+            foreach (var rule in LogManager.Configuration.LoggingRules)
+            {
+                // 先全部禁用
+                rule.DisableLoggingForLevels(LogLevel.Trace, LogLevel.Fatal);
+
+                if (nlogLevel != LogLevel.Off)
+                {
+                    // 允许 >= nlogLevel 的日志等级
+                    foreach (var lvl in new[]
+                             {
+                                 LogLevel.Trace, LogLevel.Debug, LogLevel.Info,
+                                 LogLevel.Warn, LogLevel.Error, LogLevel.Fatal
+                             })
+                    {
+                        if (lvl.Ordinal >= nlogLevel.Ordinal)
+                            rule.EnableLoggingForLevel(lvl);
+                    }
+                }
+            }
+
+            LogManager.ReconfigExistingLoggers();
+        }
+
 
         public static string DecodeBase64String(string base64EncodedData)
         {
@@ -165,19 +196,36 @@ namespace CallRecording.Models
             // 获取当前应用程序执行目录
             // string appDirectory = AppDomain.CurrentDomain.BaseDirectory;
             // 确定 appsettings.json 路径
-            // string appSettingsPath = Path.Combine(appDirectory, AppSettingsFileName);   //软件根目录
+            // string RootPath = Path.Combine(appDirectory, AppSettingsFileName);   //软件根目录(单文件的时候是在临时目录C:\Users\<你用户名>\AppData\Local\Temp\.net\<程序名>\<随机hash>\)
             string appSettingsPath = DataSource.Configurationfilepath; //"C:\\Shell\\CallRecording\\appsettings.json"
-            // 判断配置文件是否存在
-            if (File.Exists(appSettingsPath))
+            string exePath = Path.GetDirectoryName(Environment.ProcessPath);
+            string NLogPath = Path.Combine(exePath, "NLog.config");
+            // 文件字典：嵌入资源名 -> 输出路径
+            var resourceToPathMap = new Dictionary<string, string>
             {
-                Debug.WriteLine("appsettings.json 文件已存在");
-            }
-            else
+                { "CallRecording.appsettings.json", appSettingsPath },
+                { "CallRecording.NLog.config", NLogPath }
+            };
+
+            foreach (var kvp in resourceToPathMap)
             {
-                Debug.WriteLine("appsettings.json 文件不存在，开始释放");
-                // 文件不存在，从嵌入资源释放
-                ReleaseEmbeddedAppSettingsFile(appSettingsPath);
+                string resourceName = kvp.Key;
+                string outputPath = kvp.Value;
+
+                if (File.Exists(outputPath))
+                {
+                    Debug.WriteLine($"{Path.GetFileName(outputPath)} 已存在，跳过释放");
+                }
+                else
+                {
+                    Debug.WriteLine($"{Path.GetFileName(outputPath)} 不存在，开始释放");
+                    ReleaseEmbeddedResources(new Dictionary<string, string>
+                    {
+                        { resourceName, outputPath }
+                    });
+                }
             }
+
 
             // 确保下载缓存目录存在
             string directoryPath = Path.GetDirectoryName("C:\\Shell\\Download");
@@ -191,34 +239,36 @@ namespace CallRecording.Models
         /// 从嵌入式资源释放 appsettings.json 到指定路径
         /// </summary>
         /// <param name="outputPath">输出的路径</param>
-        private static void ReleaseEmbeddedAppSettingsFile(string outputPath)
+        private static void ReleaseEmbeddedResources(Dictionary<string, string> resourceToPathMap)
         {
-            // 获取当前程序集
             var assembly = Assembly.GetExecutingAssembly();
 
-            // 嵌入资源的默认命名空间 + 文件名
-            string resourceName = "CallRecording.appsettings.json"; // 根据实际命名更改
-            using (Stream resourceStream = assembly.GetManifestResourceStream(resourceName))
+            foreach (var kvp in resourceToPathMap)
             {
-                if (resourceStream == null)
+                string resourceName = kvp.Key; // 比如 "CallRecording.appsettings.json"
+                string outputPath = kvp.Value; // 比如 @"C:\MyApp\appsettings.json"
+
+                using (Stream resourceStream = assembly.GetManifestResourceStream(resourceName))
                 {
-                    throw new FileNotFoundException("嵌入式资源 appsettings.json 未找到");
+                    if (resourceStream == null)
+                    {
+                        throw new FileNotFoundException($"嵌入式资源 {resourceName} 未找到");
+                    }
+
+                    string directoryPath = Path.GetDirectoryName(outputPath);
+                    if (!Directory.Exists(directoryPath))
+                    {
+                        Directory.CreateDirectory(directoryPath);
+                    }
+
+                    using (FileStream fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
+                    {
+                        resourceStream.CopyTo(fileStream);
+                    }
                 }
 
-                // 确保目录存在
-                string directoryPath = Path.GetDirectoryName(outputPath);
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                }
-
-                using (FileStream fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
-                {
-                    resourceStream.CopyTo(fileStream);
-                }
+                Debug.WriteLine($"{resourceName} 已释放到 {outputPath}");
             }
-
-            Debug.WriteLine("appsettings.json 文件已释放到 " + outputPath);
         }
 
 
