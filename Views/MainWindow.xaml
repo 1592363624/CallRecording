@@ -130,7 +130,8 @@
                                             Margin="10,0,0,0"
                                             Command="{Binding OpenAudioManagerCommand}"
                                             Content="音频管理"
-                                            ToolTip="管理录音文件" />
+                                            Visibility="Collapsed"
+                                            ToolTip="管理录音文件(不建议使用该功能,未开发完成)" />
                                     </StackPanel>
                                 </StackPanel>
 

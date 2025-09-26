@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Navigation;
 using CallRecording.Models;
+using CallRecording.Services;
 using CallRecording.ViewModels;
 using Microsoft.Toolkit.Uwp.Notifications;
 using MySharedProject;
@@ -124,6 +125,30 @@ public partial class MainWindow : Window
                 Debug.WriteLine("处理 Toast 通知时出现异常: " + ex.Message);
             }
         };
+
+        //后台线程处理一些配置读取提醒等事情
+        Task.Run(() =>
+        {
+#if !DEBUG
+            // 启动后台动态反调试线程
+            AntiDebugHelper.StartDynamicAntiDebug();
+#endif
+            //延迟30秒
+            Thread.Sleep(30000);
+            //节假日彩蛋提示
+            HolidayEastereggtips();
+        });
+    }
+
+
+    private static void HolidayEastereggtips()
+    {
+        //节日彩蛋提示
+        var greeter = new HolidayGreeter();
+        var (title, message) = greeter.GetGreeting(DateTime.Now);
+        if (title == "普通的一天") return;
+        title = "今天是 【" + title + "】 哦!";
+        NotificationService.ShowNotification(title, message);
     }
 
     // 获取窗口句柄
