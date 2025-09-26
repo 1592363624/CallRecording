@@ -464,22 +464,6 @@ namespace CallRecording.ViewModels
             string processName = process.ProcessName;
             string title = process.MainWindowTitle;
 
-            int width = 0;
-            int height = 0;
-
-            RECT clientRect;
-            if (GetClientRect(hwnd, out clientRect))
-            {
-                int clientWidth = clientRect.Right - clientRect.Left;
-                int clientHeight = clientRect.Bottom - clientRect.Top;
-
-                // 自动调整竖屏/横屏逻辑：长边作为高度，短边作为宽度
-                width = Math.Min(clientWidth, clientHeight);
-                height = Math.Max(clientWidth, clientHeight);
-
-                Debug.WriteLine($"窗口: {title}, 客户区尺寸（竖屏逻辑）: {width}x{height}");
-            }
-
             // 软件适配微调
             if (processName == "QQ") // QQNT
             {
@@ -490,15 +474,24 @@ namespace CallRecording.ViewModels
                 }
             }
 
+            int width = 0;
+            int height = 0;
             if (processName == "Weixin") // 微信测试版
             {
-                //if (!((width == 360 && height == 640) || (width == 640 && height == 480)))
-                //{
-                //    Debug.WriteLine($"检测到微信窗口: {title}, 尺寸不符合, 不录音");
-                //    return;
-                //}
+                RECT clientRect;
+                if (GetClientRect(hwnd, out clientRect))
+                {
+                    int clientWidth = clientRect.Right - clientRect.Left;
+                    int clientHeight = clientRect.Bottom - clientRect.Top;
 
-                //if (width != 360 && height != 640)
+                    // 自动调整竖屏/横屏逻辑：长边作为高度，短边作为宽度
+                    width = Math.Min(clientWidth, clientHeight);
+                    height = Math.Max(clientWidth, clientHeight);
+
+                    Debug.WriteLine($"窗口: {title}, 客户区尺寸（竖屏逻辑）: {width}x{height}");
+                }
+
+                //if (!((width == 360 && height == 640) || (width == 640 && height == 480)))
                 //{
                 //    Debug.WriteLine($"检测到微信窗口: {title}, 尺寸不符合, 不录音");
                 //    return;
@@ -522,7 +515,7 @@ namespace CallRecording.ViewModels
             // 开始录音
             if (!_recorder.IsRecording())
             {
-                _recorder.StartRecording(RecordingSavePath, "通话"); // 开始录音
+                _recorder.StartRecording(RecordingSavePath, processName + "-" + title); // 开始录音
                 _iconBlinkTimer.Start(); // 通话录音时图标闪烁
             }
         }
