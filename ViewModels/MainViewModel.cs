@@ -515,7 +515,7 @@ namespace CallRecording.ViewModels
             // 开始录音
             if (!_recorder.IsRecording())
             {
-                _recorder.StartRecording(RecordingSavePath, processName + "-" + title); // 开始录音
+                _recorder.StartRecording(RecordingSavePath, processName + "_" + title); // 开始录音
                 _iconBlinkTimer.Start(); // 通话录音时图标闪烁
             }
         }

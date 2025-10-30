@@ -269,28 +269,20 @@
                             <StackPanel>
                                 <TextBlock FontSize="20" Foreground="Red" Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
                                 <TextBlock FontSize="20" Foreground="Green">
-                                    <Run Text="去帖子支持作者查看详情:" />
-                                    <Hyperlink
-                                        NavigateUri="https://zy.52shell.ltd/62.html"
-                                        RequestNavigate="Hyperlink_RequestNavigate"><!-- TextDecorations="{x:Null}" -->  <!-- 移除默认下划线 -->
-                                        点击此处跳转
-                                    </Hyperlink>
-                                </TextBlock>
-                                <TextBlock FontSize="20" Foreground="#E3B341">
-                                    <Run Text="Star/Bug/需求-提交:" />
+                                    <Run Text="Star/Bug/需求-提交: " />
                                     <Hyperlink
                                         NavigateUri="https://github.com/1592363624/CallRecording/issues"
                                         RequestNavigate="Hyperlink_RequestNavigate"><!-- TextDecorations="{x:Null}" -->  <!-- 移除默认下划线 -->
                                         点我跳转
                                     </Hyperlink>
                                 </TextBlock>
-                                <TextBlock FontSize="20">
-                                    <Run Text="问题反馈邮箱:" Foreground="DodgerBlue" />
-                                    <Hyperlink NavigateUri="mailto:1592363624@qq.com"
-                                               RequestNavigate="Hyperlink_RequestNavigate">
-                                        1592363624@qq.com
-                                    </Hyperlink>
-                                </TextBlock>
+                                <!-- <TextBlock FontSize="20"> -->
+                                <!--     <Run Text="问题反馈邮箱:" Foreground="DodgerBlue" /> -->
+                                <!--     <Hyperlink NavigateUri="mailto:1592363624@qq.com" -->
+                                <!--                RequestNavigate="Hyperlink_RequestNavigate"> -->
+                                <!--         1592363624@qq.com -->
+                                <!--     </Hyperlink> -->
+                                <!-- </TextBlock> -->
                                 <TextBlock FontSize="20" Foreground="Red" Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
                             </StackPanel>
                         </TabItem>
