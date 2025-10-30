@@ -52,7 +52,7 @@
                 materialDesign:ExpanderAssist.HorizontalHeaderPadding="35,2,24,2"
                 Grid.Row="2"
                 Margin="10,5,10,5"
-                Header="系统配置信息(大部分控件鼠标悬浮3秒有提示)"
+                Header="大部分控件鼠标悬浮3秒有提示,正常情况是软件自动捕捉开始和结束录制,快捷键仅用于有需求的人"
                 IsExpanded="True">
                 <StackPanel Orientation="Vertical">
                     <TabControl>
@@ -151,13 +151,24 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Bottom"
                                     Orientation="Horizontal">
-                                    <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
                                         <TextBox x:Name="HotkeyTextBox"
                                                  Margin="0,0,10,0"
                                                  PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"
                                                  VerticalAlignment="Top"
-                                                 ToolTip="设置快捷键用于启动或停止录制(Ctrl+END为默认的结束录制快捷键)"
+                                                 ToolTip="设置快捷键用于启动或停止录制(正常情况是软件自动捕捉开始和结束录制,快捷键仅用于有需求的人)"
                                                  materialDesign:HintAssist.Hint="启停录制"
+                                                 TextAlignment="Center"
+                                                 AcceptsReturn="True"
+                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                 TextWrapping="Wrap"
+                                                 VerticalScrollBarVisibility="Auto" />
+                                        <TextBox x:Name="EndHotkeyTextBox"
+                                                 Margin="0,0,10,0"
+                                                 PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"
+                                                 VerticalAlignment="Top"
+                                                 ToolTip="Ctrl+END为默认的结束录制快捷键(正常情况是软件自动捕捉开始和结束录制,快捷键仅用于有需求的人)"
+                                                 materialDesign:HintAssist.Hint="结束录制"
                                                  TextAlignment="Center"
                                                  AcceptsReturn="True"
                                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
