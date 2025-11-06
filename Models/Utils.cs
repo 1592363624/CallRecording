@@ -524,6 +524,11 @@ exit
             {
                 ConfigurationHelper.SetSetting("录音快捷键", "F9");
             }
+
+            if (ConfigurationHelper.GetSetting("结束录音快捷键") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("结束录音快捷键", "Ctrl+End");
+            }
         }
     }
 }

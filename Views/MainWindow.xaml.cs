@@ -78,6 +78,11 @@ public partial class MainWindow : Window
             bool.TryParse(ConfigurationHelper.GetSetting("是否开机自启"), out bool isStartupEnabled);
             bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
             HotkeyTextBox.Text = ConfigurationHelper.GetSetting("录音快捷键");
+
+            // 设置结束热键文本显示
+            var stopHotkey = ConfigurationHelper.GetSetting("结束录音快捷键");
+            EndHotkeyTextBox.Text = !string.IsNullOrEmpty(stopHotkey) ? stopHotkey : "Ctrl + End";
+
             kjzq.IsChecked = isStartupEnabled;
             ysms.IsChecked = isStealth;
 
@@ -511,6 +516,45 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel viewModel)
         {
             viewModel.SetHotkey(pressedKey);
+        }
+
+        // 阻止事件继续传递
+        e.Handled = true;
+    }
+
+    // 新增方法：处理结束热键设置
+    private void EndHotkeyTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        // 忽略修饰键（如 Ctrl、Alt、Shift）
+        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
+            e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
+            e.Key == Key.LeftShift || e.Key == Key.RightShift)
+        {
+            return;
+        }
+
+        // 获取按下的键
+        Keys pressedKey = (Keys)KeyInterop.VirtualKeyFromKey(e.Key);
+
+        // 获取修饰键状态
+        bool isCtrlPressed = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
+        bool isAltPressed = Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt);
+        bool isShiftPressed = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+
+        // 构建快捷键字符串
+        string hotkeyString = string.Empty;
+        if (isCtrlPressed) hotkeyString += "Ctrl + ";
+        if (isAltPressed) hotkeyString += "Alt + ";
+        if (isShiftPressed) hotkeyString += "Shift + ";
+        hotkeyString += pressedKey.ToString();
+
+        // 显示快捷键
+        EndHotkeyTextBox.Text = hotkeyString;
+
+        // 设置结束快捷键
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.SetStopHotkey(pressedKey);
         }
 
         // 阻止事件继续传递

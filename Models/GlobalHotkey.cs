@@ -12,7 +12,9 @@ public class GlobalHotkey
     private static LowLevelKeyboardProc _proc = HookCallback;
     private static IntPtr _hookID = IntPtr.Zero;
 
-    private static Keys _hotkey = Keys.F9; // 默认快捷键
+    private static Keys _hotkey = Keys.F9; // 默认启停快捷键
+    private static Keys _stopHotkey = Keys.End; // 默认结束快捷键
+    private static bool _useCustomStopHotkey = false; // 是否使用自定义结束热键
     private static HashSet<Keys> _registeredHotkeys = new HashSet<Keys>();
 
     public static event Action OnHotkeyPressed;
@@ -40,6 +42,45 @@ public class GlobalHotkey
         return true;
     }
 
+    // 新增方法：设置自定义结束热键
+    public static bool SetCustomStopHotkey(Keys hotkey)
+    {
+        if (_registeredHotkeys.Contains(hotkey))
+        {
+            MessageBox.Show("快捷键冲突, 请选择其他快捷键");
+            return false; // 快捷键冲突
+        }
+
+        // 移除旧的结束热键（如果不是默认的End键）
+        if (_useCustomStopHotkey && _registeredHotkeys.Contains(_stopHotkey) && _stopHotkey != Keys.End)
+        {
+            _registeredHotkeys.Remove(_stopHotkey);
+        }
+
+        _stopHotkey = hotkey;
+        _useCustomStopHotkey = true;
+
+        // 如果不是默认的End键，则添加到注册列表中
+        if (hotkey != Keys.End)
+        {
+            _registeredHotkeys.Add(hotkey);
+        }
+
+        return true;
+    }
+
+    // 新增方法：获取当前结束热键
+    public static Keys GetStopHotkey()
+    {
+        return _stopHotkey;
+    }
+
+    // 新增方法：检查是否使用自定义结束热键
+    public static bool IsUsingCustomStopHotkey()
+    {
+        return _useCustomStopHotkey;
+    }
+
     public static void UnregisterHotkey()
     {
         if (_hookID != IntPtr.Zero)
@@ -47,6 +88,12 @@ public class GlobalHotkey
             UnhookWindowsHookEx(_hookID);
             _registeredHotkeys.Remove(_hotkey);
             _registeredHotkeys.Remove(Keys.End);
+            // 如果使用了自定义结束热键且不是默认的End键，则移除它
+            if (_useCustomStopHotkey && _stopHotkey != Keys.End)
+            {
+                _registeredHotkeys.Remove(_stopHotkey);
+            }
+
             _hookID = IntPtr.Zero;
         }
     }
@@ -79,8 +126,9 @@ public class GlobalHotkey
                 return (IntPtr)1; // 表示已处理该消息
             }
 
-            // 检查是否匹配 Ctrl+End 热键（停止热键）
-            if (key == Keys.End && isCtrlPressed && GlobalsVariables.是否正在录音)
+            // 检查是否匹配结束热键（默认Ctrl+End或自定义热键）
+            if ((_useCustomStopHotkey && key == _stopHotkey) ||
+                (!_useCustomStopHotkey && key == Keys.End && isCtrlPressed && GlobalsVariables.是否正在录音))
             {
                 OnStopHotkeyPressed?.Invoke();
                 return (IntPtr)1; // 表示已处理该消息

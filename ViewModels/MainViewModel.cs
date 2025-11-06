@@ -65,6 +65,7 @@ namespace CallRecording.ViewModels
         private Icon _recordingIcon;
 
         private Keys _currentHotkey = Keys.F9;
+        private Keys _currentStopHotkey = Keys.End; // 添加结束热键
 
         [ObservableProperty] private string _recordingSavePath;
         [ObservableProperty] public AudioFormat _selectedFormat;
@@ -154,6 +155,14 @@ namespace CallRecording.ViewModels
             GlobalHotkey.RegisterHotkey(_currentHotkey);
             GlobalHotkey.OnHotkeyPressed += ToggleRecording; // 启停热键事件处理
             GlobalHotkey.OnStopHotkeyPressed += StopRecordingHotkey; // 停止热键事件处理
+
+            // 读取自定义结束热键设置
+            string stopHotkeyStr = ConfigurationHelper.GetSetting("结束录音快捷键");
+            if (!string.IsNullOrEmpty(stopHotkeyStr) && Enum.TryParse<Keys>(stopHotkeyStr, out Keys stopKey))
+            {
+                _currentStopHotkey = stopKey;
+                GlobalHotkey.SetCustomStopHotkey(_currentStopHotkey);
+            }
         }
 
         // 停止录音热键处理函数
@@ -183,6 +192,23 @@ namespace CallRecording.ViewModels
                 // 如果冲突，恢复之前的快捷键
                 GlobalHotkey.RegisterHotkey(_currentHotkey);
                 ConfigurationHelper.SetSetting("录音快捷键", _currentHotkey.ToString());
+            }
+        }
+
+        // 新增方法：设置结束热键
+        public void SetStopHotkey(Keys hotkey)
+        {
+            bool success = GlobalHotkey.SetCustomStopHotkey(hotkey);
+            if (success)
+            {
+                _currentStopHotkey = hotkey;
+                ConfigurationHelper.SetSetting("结束录音快捷键", hotkey.ToString());
+            }
+            else
+            {
+                // 如果冲突，恢复之前的快捷键
+                GlobalHotkey.SetCustomStopHotkey(_currentStopHotkey);
+                ConfigurationHelper.SetSetting("结束录音快捷键", _currentStopHotkey.ToString());
             }
         }
 

@@ -8,7 +8,7 @@
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     Style="{StaticResource MaterialDesignWindow}"
     Title="{DynamicResource WindowTitle}"
-    Width="900"
+    Width="1000"
     Height="650"
     Background="#F0F0F0"
     FontFamily="Microsoft YaHei"
@@ -165,7 +165,7 @@
                                                  VerticalScrollBarVisibility="Auto" />
                                         <TextBox x:Name="EndHotkeyTextBox"
                                                  Margin="0,0,10,0"
-                                                 PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"
+                                                 PreviewKeyDown="EndHotkeyTextBox_PreviewKeyDown"
                                                  VerticalAlignment="Top"
                                                  ToolTip="Ctrl+END为默认的结束录制快捷键(正常情况是软件自动捕捉开始和结束录制,快捷键仅用于有需求的人)"
                                                  materialDesign:HintAssist.Hint="结束录制"
