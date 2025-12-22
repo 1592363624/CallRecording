@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
@@ -498,6 +498,11 @@ exit
             if (ConfigurationHelper.GetSetting("微信通话窗口高度") == "NULL")
             {
                 ConfigurationHelper.SetSetting("微信通话窗口高度", "640");
+            }
+
+            if (ConfigurationHelper.GetSetting("是否启用微信窗口大小检测") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("是否启用微信窗口大小检测", "True");
             }
 
             if (ConfigurationHelper.GetSetting("监控窗口类名") == "NULL")

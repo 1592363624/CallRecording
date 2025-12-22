@@ -151,6 +151,13 @@ namespace CallRecording.ViewModels
             //读取磁盘占用相关信息
             DataSource.gbmvvm.GetDiskInFo();
 
+            // 读取启停录音热键设置
+            string startHotkeyStr = ConfigurationHelper.GetSetting("录音快捷键");
+            if (!string.IsNullOrEmpty(startHotkeyStr) && Enum.TryParse<Keys>(startHotkeyStr, out Keys startKey))
+            {
+                _currentHotkey = startKey;
+            }
+
             // 初始化时注册默认快捷键
             GlobalHotkey.RegisterHotkey(_currentHotkey);
             GlobalHotkey.OnHotkeyPressed += ToggleRecording; // 启停热键事件处理
@@ -514,6 +521,7 @@ namespace CallRecording.ViewModels
                     width = Math.Min(clientWidth, clientHeight);
                     height = Math.Max(clientWidth, clientHeight);
 
+                    logger.Info($"窗口: {title}, 客户区尺寸（Weixin）: {width}x{height}");
                     Debug.WriteLine($"窗口: {title}, 客户区尺寸（竖屏逻辑）: {width}x{height}");
                 }
 
@@ -523,14 +531,19 @@ namespace CallRecording.ViewModels
                 //    return;
                 //}
 
-                int w = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口宽度"));
-                int h = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口高度"));
-                if (width != w && height != h)
+                // 检查是否启用窗口大小检测
+                bool.TryParse(ConfigurationHelper.GetSetting("是否启用微信窗口大小检测"), out bool isCheckSize);
+                if (isCheckSize)
                 {
-                    Debug.WriteLine($"检测到微信窗口: {title}, 尺寸不符合, 不录音");
-                    //_logms.LogMessage($"检测到微信窗口: {title}, 宽高: {width}x{height}", "系统");
-                    logger.Debug($"检测到微信窗口: {title}, 宽高: {width}x{height}");
-                    return;
+                    int w = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口宽度"));
+                    int h = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口高度"));
+                    if (width != w && height != h)
+                    {
+                        Debug.WriteLine($"检测到微信窗口: {title}, 尺寸不符合, 不录音");
+                        //_logms.LogMessage($"检测到微信窗口: {title}, 宽高: {width}x{height}", "系统");
+                        logger.Info($"检测到微信窗口: {title}, 宽高: {width}x{height}");
+                        return;
+                    }
                 }
             }
 
