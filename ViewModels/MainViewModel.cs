@@ -12,7 +12,6 @@ using CallRecording.Services;
 using CallRecording.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using IWshRuntimeLibrary;
 using MySharedProject;
 using MySharedProject.Model;
 using NLog;
@@ -444,12 +443,14 @@ namespace CallRecording.ViewModels
 
         private void CreateShortcut(string shortcutPath, string targetPath)
         {
-            WshShell shell = null;
-            IWshShortcut shortcut = null;
+            dynamic shell = null;
+            dynamic shortcut = null;
             try
             {
-                shell = new WshShell();
-                shortcut = (IWshShortcut)shell.CreateShortcut(shortcutPath);
+                Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null) return;
+                shell = Activator.CreateInstance(shellType);
+                shortcut = shell.CreateShortcut(shortcutPath);
                 shortcut.Description = "CallRecording 开机自启";
                 shortcut.TargetPath = targetPath;
                 shortcut.WorkingDirectory = Path.GetDirectoryName(targetPath);
