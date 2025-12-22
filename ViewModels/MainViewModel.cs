@@ -174,7 +174,7 @@ namespace CallRecording.ViewModels
 
         private void OnRecorderStopped(object sender, EventArgs e)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 if (_iconBlinkTimer.Enabled)
                 {
