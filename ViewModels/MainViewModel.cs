@@ -172,6 +172,22 @@ namespace CallRecording.ViewModels
             }
         }
 
+        private void OnRecorderStopped(object sender, EventArgs e)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (_iconBlinkTimer.Enabled)
+                {
+                    _iconBlinkTimer.Stop();
+                    _notifyIcon.Icon = _defaultIcon;
+                    // 如果是异常停止，可能需要补一条日志，但 Recorder 内部已经有了
+                }
+                
+                // 刷新磁盘信息
+                DataSource.gbmvvm.GetDiskInFo();
+            });
+        }
+
         // 停止录音热键处理函数
         private void StopRecordingHotkey()
         {

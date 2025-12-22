@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -117,7 +117,7 @@ namespace CallRecording.Services
                         _lastEventTimes[evt.Hwnd] = now;
 
                         // 在 UI 线程安全触发事件
-                        Application.Current.Dispatcher.Invoke(() =>
+                        Application.Current.Dispatcher.InvokeAsync(() =>
                         {
                             if (evt.EventType == EVENT_OBJECT_CREATE || evt.EventType == EVENT_OBJECT_SHOW)
                             {
@@ -130,6 +130,10 @@ namespace CallRecording.Services
                                 WindowDestroyed?.Invoke(this, evt.Hwnd);
                             }
                         });
+                    }
+                    catch (ArgumentException)
+                    {
+                        // 进程可能已退出，忽略
                     }
                     catch (Exception ex)
                     {

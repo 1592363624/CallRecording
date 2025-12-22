@@ -132,6 +132,14 @@ namespace CallRecording.Models
                 {
                     _logms.LogMessage($"在处理录音停止事件时发生异常: {ex.Message}", "录音器");
                 }
+                finally
+                {
+                    _isRecording = false;
+                    GlobalsVariables.是否正在录音 = false;
+                    _isPaused = false;
+                    // 通知外部录音已停止（例如更新 UI）
+                    RecordingStopped?.Invoke(this, EventArgs.Empty);
+                }
             }
         }
 
@@ -347,17 +355,41 @@ namespace CallRecording.Models
 
                 _logms.LogMessage($"混音已完成，文件保存到: {_outputMixedFileName}", "录音器");
 
-                // 等待文件流完全释放
-                Thread.Sleep(1000);
-
-                // 删除单独录音的文件
-                DeleteFile(_outputSpeakerFileName);
-                DeleteFile(_outputMicrophoneFileName);
+                // 尝试安全删除源文件
+                DeleteFileSafe(_outputSpeakerFileName);
+                DeleteFileSafe(_outputMicrophoneFileName);
             }
             catch (Exception ex)
             {
                 _logms.LogMessage($"混音过程中发生异常: {ex.Message}", "录音器");
             }
+        }
+
+        private void DeleteFileSafe(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return;
+
+            // 简单的重试机制，最多尝试3次
+            for (int i = 0; i < 3; i++)
+            {
+                try
+                {
+                    File.Delete(filePath);
+                    return; // 删除成功，退出
+                }
+                catch (IOException)
+                {
+                    // 文件可能被占用，等待后重试
+                    Thread.Sleep(200);
+                }
+                catch (Exception ex)
+                {
+                    _logms.LogMessage($"删除文件 {Path.GetFileName(filePath)} 失败: {ex.Message}", "录音器");
+                    return;
+                }
+            }
+            
+            _logms.LogMessage($"删除文件 {Path.GetFileName(filePath)} 失败: 文件可能被占用", "录音器");
         }
 
         private string ConvertMp3ToWavIfNecessary(string inputFile)
@@ -375,21 +407,6 @@ namespace CallRecording.Models
             }
 
             return inputFile;
-        }
-
-        private void DeleteFile(string filePath)
-        {
-            try
-            {
-                if (File.Exists(filePath))
-                {
-                    File.Delete(filePath);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logms.LogMessage($"删除文件时发生异常: {ex.Message}", "录音器");
-            }
         }
     }
 }
