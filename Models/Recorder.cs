@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using NAudio.CoreAudioApi;
 using NAudio.Lame;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace CallRecording.Models
 {
@@ -335,37 +336,45 @@ namespace CallRecording.Models
 
                 if (_selectedFormat == AudioFormat.WAV)
                 {
-                    using (var readerSpeaker = new AudioFileReader(_outputSpeakerFileName))
-                    using (var readerMicrophone = new AudioFileReader(_outputMicrophoneFileName))
+                    // 使用 WaveFileReader 替代 AudioFileReader，确保正确解析 WAV 头信息
+                    using (var readerSpeaker = new WaveFileReader(_outputSpeakerFileName))
+                    using (var readerMicrophone = new WaveFileReader(_outputMicrophoneFileName))
                     {
-                        var waveFormat = readerSpeaker.WaveFormat;
-                        if (!waveFormat.Equals(readerMicrophone.WaveFormat))
+                        _logms.LogMessage($"混音源格式(WAV): Speaker={readerSpeaker.WaveFormat}, Mic={readerMicrophone.WaveFormat}", "录音器");
+
+                        ISampleProvider speakerProvider = readerSpeaker.ToSampleProvider();
+                        ISampleProvider microphoneProvider = readerMicrophone.ToSampleProvider();
+
+                        // 1. 统一采样率 (以系统声音为准)
+                        if (microphoneProvider.WaveFormat.SampleRate != speakerProvider.WaveFormat.SampleRate)
                         {
-                            throw new InvalidOperationException("录制的两个音频文件格式不一致，无法混音");
+                            _logms.LogMessage($"重采样麦克风音频: {microphoneProvider.WaveFormat.SampleRate} -> {speakerProvider.WaveFormat.SampleRate}", "录音器");
+                            microphoneProvider = new WdlResamplingSampleProvider(microphoneProvider, speakerProvider.WaveFormat.SampleRate);
                         }
 
-                        using (var waveFileWriter = new WaveFileWriter(_outputMixedFileName, waveFormat))
+                        // 2. 统一声道数 (通常为双声道)
+                        if (microphoneProvider.WaveFormat.Channels != speakerProvider.WaveFormat.Channels)
                         {
-                            var buffer1 = new float[readerSpeaker.WaveFormat.SampleRate *
-                                                    readerSpeaker.WaveFormat.Channels];
-                            var buffer2 = new float[readerMicrophone.WaveFormat.SampleRate *
-                                                    readerMicrophone.WaveFormat.Channels];
-
-                            int readSpeaker, readMicrophone;
-                            while ((readSpeaker = readerSpeaker.Read(buffer1, 0, buffer1.Length)) > 0)
-                            {
-                                readMicrophone = readerMicrophone.Read(buffer2, 0, buffer2.Length);
-
-                                // 确保读取的样本数相同
-                                int samplesToMix = Math.Min(readSpeaker, readMicrophone);
-                                for (int i = 0; i < samplesToMix; i++)
-                                {
-                                    buffer1[i] = (buffer1[i] + buffer2[i]) / 2; // 防止溢出，音量混合
-                                }
-
-                                waveFileWriter.WriteSamples(buffer1, 0, samplesToMix);
-                            }
+                             if (speakerProvider.WaveFormat.Channels == 2 && microphoneProvider.WaveFormat.Channels == 1)
+                             {
+                                 microphoneProvider = new MonoToStereoSampleProvider(microphoneProvider);
+                             }
+                             else if (speakerProvider.WaveFormat.Channels == 1 && microphoneProvider.WaveFormat.Channels == 2)
+                             {
+                                 microphoneProvider = new StereoToMonoSampleProvider(microphoneProvider);
+                             }
                         }
+
+                        // 3. 音量调整 (防止混音后爆音/削波)
+                        // 与 MP3 混音逻辑保持一致，各 0.7 的音量
+                        var speakerVol = new VolumeSampleProvider(speakerProvider) { Volume = 0.7f };
+                        var micVol = new VolumeSampleProvider(microphoneProvider) { Volume = 0.7f };
+
+                        // 4. 混音
+                        var mixer = new MixingSampleProvider(new[] { speakerVol, micVol });
+
+                        // 5. 保存为 16-bit PCM WAV (兼容性更好)
+                        WaveFileWriter.CreateWaveFile16(_outputMixedFileName, mixer);
                     }
                 }
                 else if (_selectedFormat == AudioFormat.MP3)
