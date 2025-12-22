@@ -76,6 +76,28 @@ namespace CallRecording.ViewModels
             Logs = new ObservableCollection<string>();
             _logms = new Logms(Logs);
 
+            // 读取并应用日志等级配置
+            try 
+            {
+                string logLevelStr = ConfigurationHelper.GetSetting("LogLevel");
+                if (!string.IsNullOrEmpty(logLevelStr) && logLevelStr != "NULL")
+                {
+                    SelectedLogLevel = LogLevel.FromString(logLevelStr);
+                }
+                else
+                {
+                    // 默认关闭日志
+                    SelectedLogLevel = LogLevel.Off;
+                }
+            }
+            catch
+            {
+                SelectedLogLevel = LogLevel.Off;
+            }
+            
+            // 强制应用日志等级（解决NLog默认Info的问题）
+            Utils.SetGlobalLogLevel(SelectedLogLevel);
+
             // 添加音频格式选项
             AudioFormats = new List<AudioFormat>
             {
@@ -308,6 +330,7 @@ namespace CallRecording.ViewModels
         partial void OnSelectedLogLevelChanged(LogLevel value)
         {
             Utils.SetGlobalLogLevel(value);
+            ConfigurationHelper.SetSetting("LogLevel", value.Name);
             _logms.LogMessage($"日志等级已切换,当前日志等级: " + value, "系统设置");
         }
 

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -94,7 +94,7 @@ public partial class App : Application
             if (msg == "登录成功")
             {
                 //心跳
-                await Task.Run(() =>
+                await Task.Run(async () =>
                 {
                     //Thread.Sleep(160000);
                     while (true)
@@ -116,7 +116,7 @@ public partial class App : Application
                             OnlineStatusToolTip = "离线状态";
                         }
 
-                        Thread.Sleep(160000);
+                        await Task.Delay(160000);
                     }
                 });
             }
@@ -125,13 +125,13 @@ public partial class App : Application
                 await loadConfiguration();
                 Login();
                 //心跳
-                await Task.Run(() =>
+                await Task.Run(async () =>
                 {
                     //Thread.Sleep(160000);
                     while (true)
                     {
                         string msg = Heart.SoftHeart(reftoken);
-                        Thread.Sleep(160000);
+                        await Task.Delay(160000);
                     }
                 });
             }

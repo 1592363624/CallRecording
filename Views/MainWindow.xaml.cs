@@ -134,10 +134,7 @@ public partial class MainWindow : Window
         //后台线程处理一些配置读取提醒等事情
         Task.Run(() =>
         {
-#if !DEBUG
-            // 启动后台动态反调试线程
-            AntiDebugHelper.StartDynamicAntiDebug();
-#endif
+
             //延迟30秒
             Thread.Sleep(30000);
             //节假日彩蛋提示

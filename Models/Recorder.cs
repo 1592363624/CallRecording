@@ -1,10 +1,16 @@
+using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using NAudio.CoreAudioApi;
 using NAudio.Lame;
 using NAudio.Wave;
 
 namespace CallRecording.Models
 {
+    /// <summary>
+    /// 录音核心类，负责采集音频、写入文件及后期混音
+    /// </summary>
     public class Recorder
     {
         public enum AudioFormat
@@ -13,21 +19,36 @@ namespace CallRecording.Models
             WAV
         }
 
+        private struct AudioChunk
+        {
+            public byte[] Buffer;
+            public int BytesRecorded;
+            public bool IsSpeaker;
+        }
+
         private readonly object _lockObject = new();
         private readonly Logms _logms;
-        private bool _isMixing = false;
         private bool _isRecording;
-        private bool _isPaused = false; // 添加暂停状态标志
+        private bool _isPaused = false;
+        
         public WasapiLoopbackCapture _loopbackSource;
         private WasapiCapture _microphoneSource;
+        
         private LameMP3FileWriter _mp3MicrophoneFile;
         private LameMP3FileWriter _mp3SpeakerFile;
+        private WaveFileWriter _waveMicrophoneFile;
+        private WaveFileWriter _waveSpeakerFile;
+        
         private string _outputMicrophoneFileName;
         private string _outputMixedFileName;
         private string _outputSpeakerFileName;
         private AudioFormat _selectedFormat;
-        private WaveFileWriter _waveMicrophoneFile;
-        private WaveFileWriter _waveSpeakerFile;
+
+        // 异步写入组件
+        private ConcurrentQueue<AudioChunk> _writeQueue;
+        private Task _writeTask;
+        private CancellationTokenSource _writeCts;
+        private ManualResetEventSlim _writeLoopFinished;
 
         // 添加录音停止事件，用于通知 UI
         public event EventHandler RecordingStopped;
@@ -49,6 +70,12 @@ namespace CallRecording.Models
             {
                 if (_isRecording) return;
 
+                // 初始化异步写入组件
+                _writeQueue = new ConcurrentQueue<AudioChunk>();
+                _writeCts = new CancellationTokenSource();
+                _writeLoopFinished = new ManualResetEventSlim(false);
+                _writeTask = Task.Run(() => WriteLoop(_writeCts.Token));
+
                 string extension = _selectedFormat == AudioFormat.MP3 ? "mp3" : "wav";
                 _outputSpeakerFileName = Utils.GenerateFilename(savePath, softwareName + "_speaker", extension);
                 _outputMicrophoneFileName = Utils.GenerateFilename(savePath, softwareName + "_microphone", extension);
@@ -59,23 +86,14 @@ namespace CallRecording.Models
                     _loopbackSource = new WasapiLoopbackCapture { WaveFormat = new WaveFormat(48000, 2) };
                     _microphoneSource = new WasapiCapture { WaveFormat = new WaveFormat(48000, 2) };
 
+                    _logms.LogMessage($"系统声音格式: {_loopbackSource.WaveFormat}", softwareName);
+                    _logms.LogMessage($"麦克风声音格式: {_microphoneSource.WaveFormat}", softwareName);
+
                     if (_selectedFormat == AudioFormat.WAV)
                     {
                         _waveSpeakerFile = new WaveFileWriter(_outputSpeakerFileName, _loopbackSource.WaveFormat);
                         _waveMicrophoneFile =
                             new WaveFileWriter(_outputMicrophoneFileName, _microphoneSource.WaveFormat);
-
-                        _loopbackSource.DataAvailable += (s, e) =>
-                        {
-                            if (!_isPaused) // 添加暂停检查
-                                _waveSpeakerFile.Write(e.Buffer, 0, e.BytesRecorded);
-                        };
-                        _microphoneSource.DataAvailable +=
-                            (s, e) =>
-                            {
-                                if (!_isPaused) // 添加暂停检查
-                                    _waveMicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
-                            };
                     }
                     else if (_selectedFormat == AudioFormat.MP3)
                     {
@@ -83,19 +101,28 @@ namespace CallRecording.Models
                             LAMEPreset.STANDARD);
                         _mp3MicrophoneFile = new LameMP3FileWriter(_outputMicrophoneFileName,
                             _microphoneSource.WaveFormat, LAMEPreset.STANDARD);
-
-                        _loopbackSource.DataAvailable += (s, e) =>
-                        {
-                            if (!_isPaused) // 添加暂停检查
-                                _mp3SpeakerFile.Write(e.Buffer, 0, e.BytesRecorded);
-                        };
-                        _microphoneSource.DataAvailable +=
-                            (s, e) =>
-                            {
-                                if (!_isPaused) // 添加暂停检查
-                                    _mp3MicrophoneFile.Write(e.Buffer, 0, e.BytesRecorded);
-                            };
                     }
+
+                    // 修改为入队操作，避免阻塞音频线程
+                    _loopbackSource.DataAvailable += (s, e) =>
+                    {
+                        if (_writeQueue != null && !_isPaused && e.BytesRecorded > 0) 
+                        {
+                            var buffer = new byte[e.BytesRecorded];
+                            Array.Copy(e.Buffer, buffer, e.BytesRecorded);
+                            _writeQueue.Enqueue(new AudioChunk { Buffer = buffer, BytesRecorded = e.BytesRecorded, IsSpeaker = true });
+                        }
+                    };
+                    
+                    _microphoneSource.DataAvailable += (s, e) =>
+                    {
+                        if (_writeQueue != null && !_isPaused && e.BytesRecorded > 0)
+                        {
+                            var buffer = new byte[e.BytesRecorded];
+                            Array.Copy(e.Buffer, buffer, e.BytesRecorded);
+                            _writeQueue.Enqueue(new AudioChunk { Buffer = buffer, BytesRecorded = e.BytesRecorded, IsSpeaker = false });
+                        }
+                    };
 
                     _loopbackSource.RecordingStopped += OnRecordingStopped;
                     //_microphoneSource.RecordingStopped += OnRecordingStopped;
@@ -118,12 +145,70 @@ namespace CallRecording.Models
             Utils.通话监控次数add();
         }
 
+        private void WriteLoop(CancellationToken token)
+        {
+            try
+            {
+                // 持续写入直到取消且队列为空
+                while (!token.IsCancellationRequested || !_writeQueue.IsEmpty)
+                {
+                    if (_writeQueue.TryDequeue(out var chunk))
+                    {
+                        try
+                        {
+                            if (_selectedFormat == AudioFormat.WAV)
+                            {
+                                if (chunk.IsSpeaker) _waveSpeakerFile?.Write(chunk.Buffer, 0, chunk.BytesRecorded);
+                                else _waveMicrophoneFile?.Write(chunk.Buffer, 0, chunk.BytesRecorded);
+                            }
+                            else
+                            {
+                                if (chunk.IsSpeaker) _mp3SpeakerFile?.Write(chunk.Buffer, 0, chunk.BytesRecorded);
+                                else _mp3MicrophoneFile?.Write(chunk.Buffer, 0, chunk.BytesRecorded);
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // 忽略单次写入错误，避免中断整个录音
+                        }
+                    }
+                    else
+                    {
+                        Thread.Sleep(5); // 避免空转占用 CPU
+                    }
+                }
+            }
+            finally
+            {
+                // 确保在循环结束后刷新缓冲区
+                try
+                {
+                    _waveSpeakerFile?.Flush();
+                    _waveMicrophoneFile?.Flush();
+                    _mp3SpeakerFile?.Flush();
+                    _mp3MicrophoneFile?.Flush();
+                }
+                catch { }
+
+                _writeLoopFinished.Set();
+            }
+        }
+
         public void OnRecordingStopped(object sender, StoppedEventArgs e)
         {
             lock (_lockObject)
             {
                 try
                 {
+                    // 停止写入线程并等待完成
+                    if (_writeCts != null)
+                    {
+                        _writeCts.Cancel();
+                        // 最多等待 5 秒，防止死锁
+                        _writeLoopFinished?.Wait(5000);
+                    }
+
+                    // 确保所有文件句柄已释放
                     Cleanup();
 
                     if (e.Exception != null)
@@ -216,17 +301,26 @@ namespace CallRecording.Models
         {
             _loopbackSource?.Dispose();
             _microphoneSource?.Dispose();
+            
+            // 先清理写入相关资源，确保文件句柄被释放
+            _writeCts?.Dispose();
+            _writeLoopFinished?.Dispose();
+            
             _waveSpeakerFile?.Dispose();
             _waveMicrophoneFile?.Dispose();
             _mp3SpeakerFile?.Dispose();
             _mp3MicrophoneFile?.Dispose();
-
+            
             _loopbackSource = null;
             _microphoneSource = null;
             _waveSpeakerFile = null;
             _waveMicrophoneFile = null;
             _mp3SpeakerFile = null;
             _mp3MicrophoneFile = null;
+            
+            _writeCts = null;
+            _writeLoopFinished = null;
+            _writeQueue = null;
         }
 
         private void MixAudio()
@@ -234,7 +328,7 @@ namespace CallRecording.Models
             try
             {
                 // 确保录音文件已释放
-                Cleanup();
+                // Cleanup(); // 已经在 OnRecordingStopped 调用
 
                 string extension = _selectedFormat == AudioFormat.MP3 ? "mp3" : "wav";
                 _outputMixedFileName = Path.ChangeExtension(_outputMixedFileName, extension);
@@ -295,43 +389,70 @@ namespace CallRecording.Models
                             var bufferSpeaker = new byte[waveFormatSpeaker.AverageBytesPerSecond];
                             var bufferMicrophone = new byte[waveFormatMicrophone.AverageBytesPerSecond];
 
-                            int readSpeaker, readMicrophone;
-                            while ((readSpeaker = readerSpeaker.Read(bufferSpeaker, 0, bufferSpeaker.Length)) > 0)
+                            int readSpeaker = 0, readMicrophone = 0;
+                            bool speakerFinished = false;
+                            bool microphoneFinished = false;
+
+                            while (!speakerFinished || !microphoneFinished)
                             {
-                                readMicrophone = readerMicrophone.Read(bufferMicrophone, 0, bufferMicrophone.Length);
-
-                                // 确保读取的样本数相同
-                                int samplesToMix = Math.Min(readSpeaker, readMicrophone);
-
-                                // 使用改进的混音算法
-                                if (waveFormatSpeaker.BitsPerSample == 16)
+                                if (!speakerFinished)
                                 {
-                                    for (int i = 0; i < samplesToMix; i += 2)
+                                    readSpeaker = readerSpeaker.Read(bufferSpeaker, 0, bufferSpeaker.Length);
+                                    if (readSpeaker == 0) speakerFinished = true;
+                                    else if (readSpeaker < bufferSpeaker.Length)
+                                        Array.Clear(bufferSpeaker, readSpeaker, bufferSpeaker.Length - readSpeaker);
+                                }
+                                else
+                                {
+                                    readSpeaker = 0;
+                                    Array.Clear(bufferSpeaker, 0, bufferSpeaker.Length);
+                                }
+
+                                if (!microphoneFinished)
+                                {
+                                    readMicrophone = readerMicrophone.Read(bufferMicrophone, 0, bufferMicrophone.Length);
+                                    if (readMicrophone == 0) microphoneFinished = true;
+                                    else if (readMicrophone < bufferMicrophone.Length)
+                                        Array.Clear(bufferMicrophone, readMicrophone, bufferMicrophone.Length - readMicrophone);
+                                }
+                                else
+                                {
+                                    readMicrophone = 0;
+                                    Array.Clear(bufferMicrophone, 0, bufferMicrophone.Length);
+                                }
+
+                                if (speakerFinished && microphoneFinished) break;
+
+                                // 只要有一方还有数据，就处理整个缓冲区（不足的已补零）
+                                int samplesToMix = bufferSpeaker.Length;
+
+                                // 优先处理 IEEE Float 格式
+                                if (waveFormatSpeaker.BitsPerSample == 32 && waveFormatSpeaker.Encoding == WaveFormatEncoding.IeeeFloat)
+                                {
+                                    // 处理 32-bit Float 格式
+                                    for (int i = 0; i < samplesToMix; i += 4)
                                     {
-                                        // 将16位整数转换为float进行更精确的混音
-                                        float sampleSpeaker = BitConverter.ToInt16(bufferSpeaker, i) / 32768f;
-                                        float sampleMicrophone = BitConverter.ToInt16(bufferMicrophone, i) / 32768f;
+                                        if (i + 3 >= samplesToMix) break;
 
-                                        // 应用加权混合
+                                        float sampleSpeaker = BitConverter.ToSingle(bufferSpeaker, i);
+                                        float sampleMicrophone = BitConverter.ToSingle(bufferMicrophone, i);
+
                                         float mixed = (sampleSpeaker * 0.7f) + (sampleMicrophone * 0.7f);
-
-                                        // 限制在[-1.0, 1.0]范围内
                                         mixed = Math.Max(-1.0f, Math.Min(1.0f, mixed));
 
-                                        // 转回16位整数
-                                        short mixedSample = (short)(mixed * 32768f);
-                                        byte[] mixedBytes = BitConverter.GetBytes(mixedSample);
-                                        Array.Copy(mixedBytes, 0, bufferSpeaker, i, 2);
+                                        byte[] mixedBytes = BitConverter.GetBytes(mixed);
+                                        Array.Copy(mixedBytes, 0, bufferSpeaker, i, 4);
                                     }
                                 }
                                 else if (waveFormatSpeaker.BitsPerSample == 32)
                                 {
                                     for (int i = 0; i < samplesToMix; i += 4)
                                     {
+                                        if (i + 3 >= samplesToMix) break;
+
                                         // 32位整数转float
                                         float sampleSpeaker = BitConverter.ToInt32(bufferSpeaker, i) / 2147483648f;
-                                        float sampleMicrophone =
-                                            BitConverter.ToInt32(bufferMicrophone, i) / 2147483648f;
+                                        float sampleMicrophone = BitConverter.ToInt32(bufferMicrophone, i) / 2147483648f;
 
                                         // 应用加权混合
                                         float mixed = (sampleSpeaker * 0.7f) + (sampleMicrophone * 0.7f);
@@ -345,9 +466,32 @@ namespace CallRecording.Models
                                         Array.Copy(mixedBytes, 0, bufferSpeaker, i, 4);
                                     }
                                 }
+                                else if (waveFormatSpeaker.BitsPerSample == 16)
+                                {
+                                    for (int i = 0; i < samplesToMix; i += 2)
+                                    {
+                                        if (i + 1 >= samplesToMix) break;
+
+                                        // 将16位整数转换为float进行更精确的混音
+                                        float sampleSpeaker = BitConverter.ToInt16(bufferSpeaker, i) / 32768f;
+                                        float sampleMicrophone = BitConverter.ToInt16(bufferMicrophone, i) / 32768f;
+
+                                        // 应用加权混合
+                                        float mixed = (sampleSpeaker * 0.7f) + (sampleMicrophone * 0.7f);
+
+                                        // 限制在[-1.0, 1.0]范围内
+                                        mixed = Math.Max(-1.0f, Math.Min(1.0f, mixed));
+
+                                        // 转回16位整数
+                                        short mixedSample = (short)(mixed * 32768f);
+                                        byte[] mixedBytes = BitConverter.GetBytes(mixedSample);
+                                        bufferSpeaker[i] = mixedBytes[0];
+                                        bufferSpeaker[i + 1] = mixedBytes[1];
+                                    }
+                                }
                                 else
                                 {
-                                    throw new NotSupportedException("不支持的位深度");
+                                    throw new NotSupportedException($"不支持的位深度或编码: {waveFormatSpeaker.BitsPerSample} bits, {waveFormatSpeaker.Encoding}");
                                 }
 
                                 writer.Write(bufferSpeaker, 0, samplesToMix);

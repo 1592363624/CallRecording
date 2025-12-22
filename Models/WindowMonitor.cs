@@ -8,6 +8,9 @@ using NLog;
 
 namespace CallRecording.Services
 {
+    /// <summary>
+    /// 窗口监控服务，用于检测目标软件（微信/QQ等）的语音通话窗口
+    /// </summary>
     public class WindowMonitor : IDisposable
     {
         private readonly Logms _logms;
@@ -80,18 +83,32 @@ namespace CallRecording.Services
 
         private readonly ConcurrentDictionary<IntPtr, DateTime> _lastEventTimes = new();
         private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(500);
+        
+        // PID 缓存：PID -> (ProcessName, ExpireTime)
+        private readonly ConcurrentDictionary<uint, (string Name, DateTime ExpireTime)> _processCache = new();
+        private readonly TimeSpan _cacheDuration = TimeSpan.FromSeconds(30);
 
         private void EventWorkerLoop()
         {
+            DateTime lastCleanupTime = DateTime.UtcNow;
+
             while (!_cts.Token.IsCancellationRequested)
             {
+                // 定期清理过期缓存 (每分钟)
+                if ((DateTime.UtcNow - lastCleanupTime).TotalMinutes > 1)
+                {
+                    CleanupCache();
+                    lastCleanupTime = DateTime.UtcNow;
+                }
+
                 while (_eventQueue.TryDequeue(out var evt))
                 {
                     try
                     {
                         GetWindowThreadProcessId(evt.Hwnd, out uint pid);
-                        Process process = Process.GetProcessById((int)pid);
-                        string processName = process.ProcessName;
+                        string processName = GetProcessName(pid);
+
+                        if (string.IsNullOrEmpty(processName)) continue;
 
                         StringBuilder className = new StringBuilder(256);
                         GetClassName(evt.Hwnd, className, className.Capacity);
@@ -146,11 +163,56 @@ namespace CallRecording.Services
             }
         }
 
+        private string GetProcessName(uint pid)
+        {
+            var now = DateTime.UtcNow;
+            if (_processCache.TryGetValue(pid, out var cached) && cached.ExpireTime > now)
+            {
+                return cached.Name;
+            }
+
+            try
+            {
+                var process = Process.GetProcessById((int)pid);
+                var name = process.ProcessName;
+                _processCache[pid] = (name, now.Add(_cacheDuration));
+                return name;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void CleanupCache()
+        {
+            var now = DateTime.UtcNow;
+            
+            // 清理 _lastEventTimes
+            foreach (var key in _lastEventTimes.Keys)
+            {
+                if (_lastEventTimes.TryGetValue(key, out var time))
+                {
+                    if ((now - time).TotalMinutes > 5) // 5分钟无事件则移除
+                        _lastEventTimes.TryRemove(key, out _);
+                }
+            }
+
+            // 清理 PID 缓存
+            foreach (var key in _processCache.Keys)
+            {
+                if (_processCache.TryGetValue(key, out var item))
+                {
+                    if (item.ExpireTime < now)
+                        _processCache.TryRemove(key, out _);
+                }
+            }
+        }
 
         public void Dispose()
         {
             _cts.Cancel();
-            _workerTask.Wait();
+            try { _workerTask.Wait(1000); } catch { }
             UnhookWinEvent(hWinEventHook);
         }
     }

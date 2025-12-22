@@ -369,10 +369,10 @@ REM 结束进程
 tasklist /FI ""IMAGENAME eq CallRecording.exe"" 2>NUL | find /I ""CallRecording.exe"" >NUL && taskkill /F /IM ""CallRecording.exe""
 
 REM 解压固定路径的ZIP
-powershell -Command ""Expand-Archive -Path 'C:\Shell\Download\CallRecording.zip' -DestinationPath '%TargetDir%' -Force""
+powershell -Command ""Expand-Archive -Path '%TargetDir%\CallRecording.zip' -DestinationPath '%TargetDir%' -Force""
 
 REM 清理固定路径的ZIP
-del /F /Q ""C:\Shell\Download\CallRecording.zip"" >nul 2>&1
+del /F /Q ""%TargetDir%\CallRecording.zip"" >nul 2>&1
 
 REM 启动程序
 start """" /D ""%TargetDir%"" CallRecording.exe
