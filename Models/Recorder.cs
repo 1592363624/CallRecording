@@ -29,6 +29,9 @@ namespace CallRecording.Models
         private WaveFileWriter _waveMicrophoneFile;
         private WaveFileWriter _waveSpeakerFile;
 
+        // 添加录音停止事件，用于通知 UI
+        public event EventHandler RecordingStopped;
+
         public Recorder(Logms logms, AudioFormat selectedFormat)
         {
             _logms = logms;
