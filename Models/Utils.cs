@@ -517,7 +517,7 @@ exit
 
             if (ConfigurationHelper.GetSetting("监控窗口标题") == "NULL")
             {
-                ConfigurationHelper.SetSetting("监控窗口标题", "语音");
+                ConfigurationHelper.SetSetting("监控窗口标题", "语音|微信音视频通话");
             }
 
             if (ConfigurationHelper.GetSetting("上次执行检测更新时间") == "NULL")

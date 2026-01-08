@@ -343,6 +343,20 @@ public partial class MainWindow : Window
         }
     }
 
+    // RECT结构体定义，用于GetClientRect函数
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+    
+    // 获取客户区大小
+    [DllImport("user32.dll")]
+    private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+    
     private void CaptureWindowInfo()
     {
         // 获取当前鼠标位置
@@ -352,39 +366,73 @@ public partial class MainWindow : Window
         IntPtr hWnd = WindowFromPoint(screenPoint);
 
         if (hWnd != IntPtr.Zero)
-        {
-            // 获取窗口类名
-            StringBuilder className = new StringBuilder(256);
-            GetClassName(hWnd, className, className.Capacity);
-
-            // 获取窗口所属的进程ID
-            GetWindowThreadProcessId(hWnd, out uint processId);
-            Process process = Process.GetProcessById((int)processId);
-
-            // 获取窗口标题
-            StringBuilder windowTitle = new StringBuilder(256);
-            GetWindowText(hWnd, windowTitle, windowTitle.Capacity);
-
-            if (process.ProcessName == "Weixin")
             {
-                Size size = Utils.GetWindowSize(hWnd);
-                ConfigurationHelper.SetSetting("微信通话窗口宽度", size.Width.ToString(CultureInfo.InvariantCulture));
-                ConfigurationHelper.SetSetting("微信通话窗口高度", size.Height.ToString(CultureInfo.InvariantCulture));
-                logger.Info("已更新配置项:微信通话窗口宽度：" + size.Width + "，微信通话窗口高度：" + size.Height);
+                // 获取窗口类名
+                StringBuilder className = new StringBuilder(256);
+                GetClassName(hWnd, className, className.Capacity);
+
+                // 获取窗口所属的进程ID
+                GetWindowThreadProcessId(hWnd, out uint processId);
+                Process process = Process.GetProcessById((int)processId);
+
+                // 获取窗口标题
+                StringBuilder windowTitle = new StringBuilder(256);
+                GetWindowText(hWnd, windowTitle, windowTitle.Capacity);
+
+                // 验证获取的窗口信息是否有效
+                string classNameStr = className.ToString().Trim();
+                string processNameStr = process.ProcessName.Trim();
+                string windowTitleStr = windowTitle.ToString().Trim();
+                
+                if (string.IsNullOrEmpty(classNameStr) || string.IsNullOrEmpty(processNameStr))
+                {
+                    logger.Info("获取到无效的窗口信息，跳过添加");
+                    return;
+                }
+
+                if (process.ProcessName == "Weixin")
+                {
+                    // 使用GetClientRect获取客户区大小，与录音检测时保持一致
+                    RECT clientRect;
+                    if (GetClientRect(hWnd, out clientRect))
+                    {
+                        int clientWidth = clientRect.Right - clientRect.Left;
+                        int clientHeight = clientRect.Bottom - clientRect.Top;
+                        
+                        // 自动调整竖屏/横屏逻辑：长边作为高度，短边作为宽度
+                        int width = Math.Min(clientWidth, clientHeight);
+                        int height = Math.Max(clientWidth, clientHeight);
+                        
+                        ConfigurationHelper.SetSetting("微信通话窗口宽度", width.ToString(CultureInfo.InvariantCulture));
+                        ConfigurationHelper.SetSetting("微信通话窗口高度", height.ToString(CultureInfo.InvariantCulture));
+                        logger.Info("已更新配置项:微信通话窗口宽度：" + width + "，微信通话窗口高度：" + height);
+                    }
+                }
+
+                // 获取当前配置
+                string currentClassNames = ConfigurationHelper.GetSetting("监控窗口类名");
+                string currentProcessNames = ConfigurationHelper.GetSetting("监控窗口进程名");
+                string currentTitles = ConfigurationHelper.GetSetting("监控窗口标题");
+                
+                // 构建新的配置值，避免添加重复或无效信息
+                string newClassNames = $"{currentClassNames}|{classNameStr}";
+                string newProcessNames = $"{currentProcessNames}|{processNameStr}";
+                string newTitles = $"{currentTitles}|{windowTitleStr}";
+
+                ConfigurationHelper.SetSetting("监控窗口类名", newClassNames);
+                ConfigurationHelper.SetSetting("监控窗口进程名", newProcessNames);
+                ConfigurationHelper.SetSetting("监控窗口标题", newTitles);
+
+                DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
+                DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
+                DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
+                
+                // 调用重新初始化窗口监控方法
+                if (DataContext is MainViewModel viewModel)
+                {
+                    viewModel.ReinitializeWindowMonitor();
+                }
             }
-
-
-            ConfigurationHelper.SetSetting("监控窗口类名", ConfigurationHelper.GetSetting("监控窗口类名") + "|" + className);
-            ConfigurationHelper.SetSetting("监控窗口进程名",
-                ConfigurationHelper.GetSetting("监控窗口进程名") + "|" + process.ProcessName);
-            ConfigurationHelper.SetSetting("监控窗口标题",
-                ConfigurationHelper.GetSetting("监控窗口标题") + "|" + windowTitle);
-
-
-            DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
-            DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
-            DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
-        }
     }
 
     private void adm_MouseMove(object sender, MouseEventArgs e)

@@ -493,12 +493,21 @@ namespace CallRecording.ViewModels
             });
         }
 
+        // 重新初始化窗口监控
+        public void ReinitializeWindowMonitor()
+        {
+            // 释放现有实例
+            _windowMonitor?.Dispose();
+            // 重新初始化
+            InitializeWindowMonitor();
+        }
+
         // 初始化窗口监控
         private void InitializeWindowMonitor()
         {
             var targetClassNames = new List<string> { "AudioWnd|WXworkWindow|Qt51514QWindowIcon" };
-            var targetProcessNames = new List<string> { "WeChat|WXWork|Weixin" };
-            var targetTitles = new List<string> { "语音" };
+            var targetProcessNames = new List<string> { "WeChat|Weixin" };
+            var targetTitles = new List<string> { "语音|微信音视频通话" };
             // GlobalMVVM gmvvm = new GlobalMVVM();
             DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
             DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
@@ -507,9 +516,15 @@ namespace CallRecording.ViewModels
             if (!string.IsNullOrEmpty(DataSource.gbmvvm.Cn) && !string.IsNullOrEmpty(DataSource.gbmvvm.Pn) &&
                 !string.IsNullOrEmpty(DataSource.gbmvvm.Tt))
             {
-                targetClassNames = DataSource.gbmvvm.Cn.Split('|').ToList();
-                targetProcessNames = DataSource.gbmvvm.Pn.Split('|').ToList();
-                targetTitles = DataSource.gbmvvm.Tt.Split('|').ToList();
+                targetClassNames = DataSource.gbmvvm.Cn.Split('|')
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
+                targetProcessNames = DataSource.gbmvvm.Pn.Split('|')
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
+                targetTitles = DataSource.gbmvvm.Tt.Split('|')
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
             }
             else
             {

@@ -59,7 +59,7 @@ namespace CallRecording.ViewModels
 
         private readonly Dictionary<string, (string Process, string Class, string Title)> _appConfigMap = new()
         {
-            { "微信", ("WeChat|Weixin", "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon", "语音") },
+            { "微信", ("WeChat|Weixin", "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon", "语音|微信音视频通话") },
             { "QQNT", ("QQ", "Chrome_RenderWidgetHostHWND", "语音") },
             { "企业微信", ("WXWork", "WXworkWindow", "语音") }
         };
@@ -70,7 +70,7 @@ namespace CallRecording.ViewModels
             if (判断软件是否刚启动 == 0)
             {
                 // 读取配置文件初始化IsWeChatChecked, IsWeChatWorkChecked, IsQQChecked
-                IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat|Weixin");
+                IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat|WXWork|Weixin");
                 IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
                 IsQQChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("QQ");
                 判断软件是否刚启动++;
@@ -85,7 +85,7 @@ namespace CallRecording.ViewModels
             {
                 processList.AddRange("WeChat|Weixin".Split('|'));
                 classList.AddRange("AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon".Split('|'));
-                titleList.AddRange("语音".Split('|'));
+                titleList.AddRange("语音|微信音视频通话".Split('|'));
             }
 
             if (IsWeChatWorkChecked)

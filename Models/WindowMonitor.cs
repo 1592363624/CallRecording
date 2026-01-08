@@ -82,7 +82,7 @@ namespace CallRecording.Services
         }
 
         private readonly ConcurrentDictionary<IntPtr, DateTime> _lastEventTimes = new();
-        private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(500);
+        private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(2000);
         
         // PID 缓存：PID -> (ProcessName, ExpireTime)
         private readonly ConcurrentDictionary<uint, (string Name, DateTime ExpireTime)> _processCache = new();
@@ -112,15 +112,31 @@ namespace CallRecording.Services
 
                         StringBuilder className = new StringBuilder(256);
                         GetClassName(evt.Hwnd, className, className.Capacity);
+                        // 获取窗口标题
                         string windowTitle = WindowInfo.GetWindowTitle(evt.Hwnd);
 
                         logger.Info($"检测到窗口事件(所有事件): {processName}, {windowTitle}, {className}");
 
+                        // 验证获取的窗口信息
+                        string classNameStr = className.ToString().Trim();
+                        string processNameStr = processName.Trim();
+                        string windowTitleStr = windowTitle.Trim();
+                        
+                        // 跳过无效窗口
+                        if (string.IsNullOrEmpty(classNameStr) || string.IsNullOrEmpty(processNameStr))
+                            continue;
+                        
+                        // 排除软件自身窗口
+                        if (windowTitleStr.Contains("通话录音助手"))
+                            continue;
 
-                        bool titleMatch = TargetTitles.Count == 0 || TargetTitles.Exists(t => windowTitle.Contains(t));
-                        if (!TargetClassNames.Contains(className.ToString()) ||
-                            !TargetProcessNames.Contains(processName) ||
-                            !titleMatch)
+                        bool titleMatch = TargetTitles.Count == 0 || TargetTitles.Exists(t => 
+                            !string.IsNullOrEmpty(t) && windowTitleStr.Contains(t));
+                        bool classMatch = TargetClassNames.Count == 0 || TargetClassNames.Exists(c => 
+                            !string.IsNullOrEmpty(c) && classNameStr.Contains(c));
+                        bool processMatch = TargetProcessNames.Count == 0 || TargetProcessNames.Exists(p => 
+                            !string.IsNullOrEmpty(p) && processNameStr.Contains(p));
+                        if (!classMatch || !processMatch || !titleMatch)
                             continue;
 
                         // 防抖检查
