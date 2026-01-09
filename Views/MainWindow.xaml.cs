@@ -178,9 +178,8 @@ public partial class MainWindow
                 // 将版本号转换为Version对象进行处理
                 if (!string.IsNullOrEmpty(latestVer) && Version.TryParse(latestVer, out Version? version))
                 {
-                    // 如果版本号的修订号大于0，则减1；否则保持不变
-                    int revision = version.Revision > 0 ? version.Revision - 1 : 0;
-                    version = new Version(version.Major, version.Minor, version.Build, revision);
+                    int build = version.Build > 0 ? version.Build - 1 : 0;
+                    version = new Version(version.Major, version.Minor, build);
                     latestVer = version.ToString();
                 }
             }
