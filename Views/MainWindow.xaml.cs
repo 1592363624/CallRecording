@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -33,24 +32,19 @@ using Point = System.Drawing.Point;
 
 namespace CallRecording.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow
 {
-    private readonly ObservableCollection<string> _logs;
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-
-    bool 是否点击通知更新的确认按钮 = false;
-
+    
     // GlobalMVVM gmvvm = new GlobalMVVM();
-    private bool isDragging = false;
-    private MarkerWindow markerWindow;
-
-    string msg = "";
+    private bool isDragging;
+    private MarkerWindow? markerWindow;
 
     public MainWindow()
     {
         InitializeComponent();
 
-        CheckUpdate();
+        _=CheckUpdate();
 
         WindowState = WindowState.Minimized;
 
@@ -112,7 +106,7 @@ public partial class MainWindow : Window
                             updateLogWindow.Show();
                             Process.Start(new ProcessStartInfo
                             {
-                                FileName = "https://wwf.lanzoue.com/b00g2fhjzg?pwd=1bxs#1bxs",
+                                FileName = "https://github.com/1592363624/CallRecording/releases",
                                 UseShellExecute = true
                             });
                         });
@@ -181,7 +175,14 @@ public partial class MainWindow : Window
             var status = NewVersion?.result?.list?[0].status;
             if (status == "0")
             {
-                latestVer = (decimal.Parse(latestVer) - 0.1m).ToString();
+                // 将版本号转换为Version对象进行处理
+                if (!string.IsNullOrEmpty(latestVer) && Version.TryParse(latestVer, out Version? version))
+                {
+                    // 如果版本号的修订号大于0，则减1；否则保持不变
+                    int revision = version.Revision > 0 ? version.Revision - 1 : 0;
+                    version = new Version(version.Major, version.Minor, version.Build, revision);
+                    latestVer = version.ToString();
+                }
             }
 
             string? UpdateLog = Web.GetUpdateLog(DataSource.Skey);
@@ -206,7 +207,7 @@ public partial class MainWindow : Window
                         .Show();
 
                     //开始下载更新文件
-                    StartUpdata();
+                    await StartUpdata();
                 }
                 catch (Exception e)
                 {
@@ -273,7 +274,7 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 
-    private void MainWindow_Closing(object sender, CancelEventArgs e)
+    private void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
         // 阻止窗口关闭并隐藏窗口
         e.Cancel = true;
