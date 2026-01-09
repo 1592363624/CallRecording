@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows;
 using CallRecording.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -41,6 +41,10 @@ namespace CallRecording.ViewModels
 
         private int 判断软件是否刚启动 = 0;
 
+        /// <summary>
+        /// 构造函数，初始化全局MVVM数据
+        /// </summary>
+
         partial void OnIsWeChatCheckedChanged(bool value) => UpdateMonitorSettings();
         partial void OnIsWeChatWorkCheckedChanged(bool value) => UpdateMonitorSettings();
         partial void OnIsQQCheckedChanged(bool value) => UpdateMonitorSettings();
@@ -57,6 +61,10 @@ namespace CallRecording.ViewModels
         // 用于计算第二个矩形和第三个矩形的偏移量
         public double TotalUsedProportion => UsedSpaceProportion + AvailableFreeSpaceProportion;
 
+        /// <summary>
+        /// 应用程序配置映射，存储不同应用程序的进程名、窗口类名和标题的匹配规则
+        /// 用于监控和识别特定的应用程序窗口进行录音
+        /// </summary>
         private readonly Dictionary<string, (string Process, string Class, string Title)> _appConfigMap = new()
         {
             { "微信", ("WeChat|Weixin", "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon", "语音|微信音视频通话") },
@@ -64,16 +72,18 @@ namespace CallRecording.ViewModels
             { "企业微信", ("WXWork", "WXworkWindow", "语音") }
         };
 
-        private void UpdateMonitorSettings()
+        public void UpdateMonitorSettings()
         {
             //因为首次初始化这个类的时候会执行一次,所以需要把第一次排除掉
             if (判断软件是否刚启动 == 0)
             {
                 // 读取配置文件初始化IsWeChatChecked, IsWeChatWorkChecked, IsQQChecked
-                IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat|WXWork|Weixin");
-                IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
-                IsQQChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("QQ");
+                string processConfig = ConfigurationHelper.GetSetting("监控窗口进程名");
+                IsWeChatChecked = processConfig.Contains("WeChat") || processConfig.Contains("Weixin");
+                IsWeChatWorkChecked = processConfig.Contains("WXWork");
+                IsQQChecked = processConfig.Contains("QQ");
                 判断软件是否刚启动++;
+                return; // 首次初始化只设置属性值，不保存配置
             }
 
             var processList = new List<string>();
@@ -106,7 +116,7 @@ namespace CallRecording.ViewModels
             var existingProcess = ConfigurationHelper.GetSetting("监控窗口进程名").Split('|')
                 .Where(x => !string.IsNullOrEmpty(x)
                             && !x.Contains("要监控")
-                            && !_appConfigMap.Values.Any(v => v.Process == x)); // 排除自动配置项
+                            && !_appConfigMap.Values.Any(v => v.Process.Split('|').Contains(x))); // 排除自动配置项 - 检查分割后的进程名
 
             var existingClass = ConfigurationHelper.GetSetting("监控窗口类名").Split('|')
                 .Where(x => !string.IsNullOrEmpty(x)
