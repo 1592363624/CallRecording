@@ -248,18 +248,18 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <TextBlock Grid.Row="0" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                               Text="正在监控的窗口类名:">
-                                    </TextBlock>
-                                    <TextBox x:Name="TextBox_Cn" TextChanged="TextBox_Cn_OnTextChanged" Grid.Row="1"
-                                             TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                             Text="{Binding Cn, UpdateSourceTrigger=PropertyChanged, TargetNullValue='绑定失败'}">
-                                    </TextBox>
-                                    <TextBlock Grid.Row="2" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
                                                Text="正在监控的窗口进程名:">
                                     </TextBlock>
-                                    <TextBox x:Name="TextBox_Pn" TextChanged="TextBox_Pn_OnTextChanged" Grid.Row="3"
+                                    <TextBox x:Name="TextBox_Pn" TextChanged="TextBox_Pn_OnTextChanged" Grid.Row="1"
                                              TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
                                              Text="{Binding Pn, UpdateSourceTrigger=PropertyChanged, TargetNullValue='绑定失败'}">
+                                    </TextBox>
+                                    <TextBlock Grid.Row="2" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                               Text="正在监控的窗口类名:">
+                                    </TextBlock>
+                                    <TextBox x:Name="TextBox_Cn" TextChanged="TextBox_Cn_OnTextChanged" Grid.Row="3"
+                                             TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
+                                             Text="{Binding Cn, UpdateSourceTrigger=PropertyChanged, TargetNullValue='绑定失败'}">
                                     </TextBox>
                                     <TextBlock Grid.Row="4" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
                                                Text="正在监控的窗口标题:">

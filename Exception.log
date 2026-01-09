@@ -1,0 +1,40 @@
+2026/1/9 11:11:58
+System.TypeInitializationException: The type initializer for 'MySharedProject.DataSource' threw an exception.
+ ---> System.TypeInitializationException: The type initializer for 'MySharedProject.Model.ConfigurationHelper' threw an exception.
+ ---> System.ArgumentNullException: Value cannot be null. (Parameter 'basePath')
+   at System.ThrowHelper.Throw(String paramName)
+   at System.ThrowHelper.ThrowIfNull(Object argument, String paramName)
+   at Microsoft.Extensions.Configuration.FileConfigurationExtensions.SetBasePath(IConfigurationBuilder builder, String basePath)
+   at MySharedProject.Model.ConfigurationHelper.LoadConfiguration() in D:\Workspace\VSstudio2022\MySharedProject\Model\ConfigurationHelper.cs:line 21
+   at MySharedProject.Model.ConfigurationHelper..cctor() in D:\Workspace\VSstudio2022\MySharedProject\Model\ConfigurationHelper.cs:line 16
+   --- End of inner exception stack trace ---
+   at MySharedProject.Model.ConfigurationHelper.GetSetting(String key) in D:\Workspace\VSstudio2022\MySharedProject\Model\ConfigurationHelper.cs:line 30
+   at CallRecording.ViewModels.GlobalMVVM.UpdateMonitorSettings() in D:\Workspace\VSstudio2022\CallRecording\ViewModels\GlobalMVVM.cs:line 86
+   at CallRecording.ViewModels.GlobalMVVM..ctor() in D:\Workspace\VSstudio2022\CallRecording\ViewModels\GlobalMVVM.cs:line 50
+   at MySharedProject.DataSource..cctor() in D:\Workspace\VSstudio2022\MySharedProject\DataSource.cs:line 16
+   --- End of inner exception stack trace ---
+   at CallRecording.Models.Utils.EnsureAppSettingsFile() in D:\Workspace\VSstudio2022\CallRecording\Models\Utils.cs:line 240
+   at CallRecording.App.OnStartup(StartupEventArgs e) in D:\Workspace\VSstudio2022\CallRecording\App.xaml.cs:line 57
+   at System.Threading.Tasks.Task.<>c.<ThrowAsync>b__128_0(Object state)
+   at System.Windows.Threading.ExceptionWrapper.InternalRealCall(Delegate callback, Object args, Int32 numArgs)
+   at System.Windows.Threading.ExceptionWrapper.TryCatchWhen(Object source, Delegate callback, Object args, Int32 numArgs, Delegate catchHandler)
+   at System.Windows.Threading.DispatcherOperation.InvokeImpl()
+   at MS.Internal.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at MS.Internal.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Windows.Threading.DispatcherOperation.Invoke()
+   at System.Windows.Threading.Dispatcher.ProcessQueue()
+   at System.Windows.Threading.Dispatcher.WndProcHook(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam, Boolean& handled)
+   at MS.Win32.HwndWrapper.WndProc(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam, Boolean& handled)
+   at MS.Win32.HwndSubclass.DispatcherCallbackOperation(Object o)
+   at System.Windows.Threading.ExceptionWrapper.InternalRealCall(Delegate callback, Object args, Int32 numArgs)
+   at System.Windows.Threading.ExceptionWrapper.TryCatchWhen(Object source, Delegate callback, Object args, Int32 numArgs, Delegate catchHandler)
+   at System.Windows.Threading.Dispatcher.LegacyInvokeImpl(DispatcherPriority priority, TimeSpan timeout, Delegate method, Object args, Int32 numArgs)
+   at MS.Win32.HwndSubclass.SubclassWndProc(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam)
+   at MS.Win32.UnsafeNativeMethods.DispatchMessage(MSG& msg)
+   at System.Windows.Threading.Dispatcher.PushFrameImpl(DispatcherFrame frame)
+   at System.Windows.Application.RunDispatcher(Object ignore)
+   at System.Windows.Application.RunInternal(Window window)
+   at CallRecording.App.Main()

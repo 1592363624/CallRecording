@@ -81,7 +81,7 @@ public partial class MainWindow
             ysms.IsChecked = isStealth;
 
             //初始化监控选择框是否选中
-            DataSource.gbmvvm.IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WeChat");
+            DataSource.gbmvvm.IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("Weixin");
             DataSource.gbmvvm.IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
             DataSource.gbmvvm.IsQQChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("QQ");
         };
