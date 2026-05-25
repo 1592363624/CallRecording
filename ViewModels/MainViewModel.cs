@@ -68,6 +68,7 @@ namespace CallRecording.ViewModels
 
         [ObservableProperty] private string _recordingSavePath;
         [ObservableProperty] public AudioFormat _selectedFormat;
+        [ObservableProperty] private bool _isKeepOriginalFiles;
         private WindowMonitor _windowMonitor;
 
         public MainViewModel()
@@ -168,6 +169,10 @@ namespace CallRecording.ViewModels
                     ? AudioFormat.MP3
                     : AudioFormat.WAV;
             });
+
+            // 读取是否保留独立录音文件的配置
+            bool.TryParse(ConfigurationHelper.GetSetting("保留独立录音文件"), out bool isKeepOriginalFiles);
+            IsKeepOriginalFiles = isKeepOriginalFiles;
 
             //读取磁盘占用相关信息
             DataSource.gbmvvm.GetDiskInFo();
@@ -438,6 +443,23 @@ namespace CallRecording.ViewModels
             else
             {
                 MessageBox.Show("取消隐身模式启动成功,下次启动将会显示系统托盘图标");
+            }
+        }
+
+        // 保留独立录音文件命令
+        [RelayCommand]
+        private void KeepOriginalFiles()
+        {
+            IsKeepOriginalFiles = !IsKeepOriginalFiles;
+            ConfigurationHelper.SetSetting("保留独立录音文件", IsKeepOriginalFiles.ToString());
+
+            if (IsKeepOriginalFiles)
+            {
+                _logms.LogMessage("已启用保留独立录音文件功能", "设置");
+            }
+            else
+            {
+                _logms.LogMessage("已禁用保留独立录音文件功能", "设置");
             }
         }
 

@@ -200,6 +200,14 @@
                                         Content="隐身模式  "
                                         ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。" />
 
+                                    <CheckBox
+                                        x:Name="KeepOriginalFiles"
+                                        Margin="10,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding KeepOriginalFilesCommand}"
+                                        Content="保留独立录音文件  "
+                                        ToolTip="启用后，混音完成的独立录音文件（麦克风和扬声器）将不会被删除" />
+
                                     <ComboBox
                                         x:Name="cb_AudioFormats"
                                         ItemsSource="{Binding AudioFormats}"

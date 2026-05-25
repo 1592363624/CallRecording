@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.IO;
+using MySharedProject.Model;
 using NAudio.CoreAudioApi;
 using NAudio.Lame;
 using NAudio.Wave;
@@ -524,9 +525,18 @@ namespace CallRecording.Models
 
                 _logms.LogMessage($"混音已完成，文件保存到: {_outputMixedFileName}", "录音器");
 
-                // 尝试安全删除源文件
-                DeleteFileSafe(_outputSpeakerFileName);
-                DeleteFileSafe(_outputMicrophoneFileName);
+                // 根据配置决定是否删除独立录音文件
+                bool.TryParse(ConfigurationHelper.GetSetting("保留独立录音文件"), out bool isKeepOriginalFiles);
+                if (!isKeepOriginalFiles)
+                {
+                    // 尝试安全删除源文件
+                    DeleteFileSafe(_outputSpeakerFileName);
+                    DeleteFileSafe(_outputMicrophoneFileName);
+                }
+                else
+                {
+                    _logms.LogMessage($"已保留独立录音文件: {Path.GetFileName(_outputSpeakerFileName)}, {Path.GetFileName(_outputMicrophoneFileName)}", "录音器");
+                }
             }
             catch (Exception ex)
             {

@@ -80,6 +80,10 @@ public partial class MainWindow
             kjzq.IsChecked = isStartupEnabled;
             ysms.IsChecked = isStealth;
 
+            // 初始化保留独立录音文件复选框
+            bool.TryParse(ConfigurationHelper.GetSetting("保留独立录音文件"), out bool isKeepOriginalFiles);
+            KeepOriginalFiles.IsChecked = isKeepOriginalFiles;
+
             //初始化监控选择框是否选中
             DataSource.gbmvvm.IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("Weixin");
             DataSource.gbmvvm.IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
