@@ -14,8 +14,8 @@
     <Copyright>Shell</Copyright>
     <PackageProjectUrl>https://52shell.ltd</PackageProjectUrl>
     <RepositoryType>GitHub</RepositoryType>
-    <AssemblyVersion>3.7.3</AssemblyVersion>
-    <FileVersion>3.7.3</FileVersion>
+    <AssemblyVersion>3.7.4</AssemblyVersion>
+    <FileVersion>3.7.4</FileVersion>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>

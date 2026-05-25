@@ -144,6 +144,7 @@
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <StackPanel
                                     Grid.Row="0"
@@ -185,58 +186,65 @@
                                         PreviewMouseRightButtonDown="adm_MouseRightButtonDown"
                                         PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp"
                                         PreviewMouseMove="adm_MouseMove" />
-                                    <CheckBox
-                                        x:Name="kjzq"
-                                        Margin="10,0,0,0"
-                                        VerticalAlignment="Center"
-                                        Command="{Binding StartupCommand}"
-                                        Content="开机自启  " />
-
-                                    <CheckBox
-                                        x:Name="ysms"
-                                        Margin="10,0,0,0"
-                                        VerticalAlignment="Center"
-                                        Command="{Binding StealthCommand}"
-                                        Content="隐身模式  "
-                                        ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。" />
-
-                                    <CheckBox
-                                        x:Name="KeepOriginalFiles"
-                                        Margin="10,0,0,0"
-                                        VerticalAlignment="Center"
-                                        Command="{Binding KeepOriginalFilesCommand}"
-                                        Content="保留独立录音文件  "
-                                        ToolTip="启用后，混音完成的独立录音文件（麦克风和扬声器）将不会被删除" />
-
-                                    <ComboBox
-                                        x:Name="cb_AudioFormats"
-                                        ItemsSource="{Binding AudioFormats}"
-                                        SelectedItem="{Binding SelectedFormat}"
-                                        SelectionChanged="Cb_AudioFormats_OnSelectionChanged"
-                                        ToolTip="★推荐★MP3格式文件小(不过录制音频效果也已经优化的其实还不错),WAV格式无损音频(文件大)">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding}" />
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-
-                                    <ComboBox
-                                        x:Name="Loglvl"
-                                        Margin="10,0,0,0"
-                                        ItemsSource="{Binding AvailableLogLevels}"
-                                        SelectedItem="{Binding SelectedLogLevel, Mode=TwoWay}"
-                                        ToolTip="写日志默认是关闭状态,主要用于有问题的时候调试">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding}" />
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
 
                                 </StackPanel>
 
-                                <Grid Grid.Row="1" x:Name="MonitorLst">
+                                <Grid Grid.Row="1">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                                HorizontalAlignment="Center">
+                                        <CheckBox
+                                            x:Name="kjzq"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Command="{Binding StartupCommand}"
+                                            Content="开机自启  " />
+
+                                        <CheckBox
+                                            x:Name="ysms"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Command="{Binding StealthCommand}"
+                                            Content="隐身模式  "
+                                            ToolTip="隐身模式启用时，程序在后台运行且不显示窗口和系统托盘图标。" />
+
+                                        <CheckBox
+                                            x:Name="KeepOriginalFiles"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Command="{Binding KeepOriginalFilesCommand}"
+                                            Content="保留独立录音文件  "
+                                            ToolTip="启用后，混音完成的独立录音文件（麦克风和扬声器）将不会被删除" />
+
+                                        <ComboBox
+                                            x:Name="cb_AudioFormats"
+                                            Margin="10,0,0,0"
+                                            ItemsSource="{Binding AudioFormats}"
+                                            SelectedItem="{Binding SelectedFormat}"
+                                            SelectionChanged="Cb_AudioFormats_OnSelectionChanged"
+                                            ToolTip="★推荐★MP3格式文件小(不过录制音频效果也已经优化的其实还不错),WAV格式无损音频(文件大)">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+
+                                        <ComboBox
+                                            x:Name="Loglvl"
+                                            Margin="10,0,0,0"
+                                            ItemsSource="{Binding AvailableLogLevels}"
+                                            SelectedItem="{Binding SelectedLogLevel, Mode=TwoWay}"
+                                            ToolTip="写日志默认是关闭状态,主要用于有问题的时候调试">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid Grid.Row="2" x:Name="MonitorLst">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                                                 HorizontalAlignment="Left">
                                         <TextBlock Text="监控列表:" ToolTip="选择后需要重启软件生效" Margin="5"></TextBlock>
@@ -246,7 +254,7 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <Grid Grid.Row="2" x:Name="Grid_CP">
+                                <Grid Grid.Row="3" x:Name="Grid_CP">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="*" />
                                         <RowDefinition Height="Auto" />
