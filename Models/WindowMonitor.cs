@@ -83,7 +83,7 @@ namespace CallRecording.Services
 
         private readonly ConcurrentDictionary<IntPtr, DateTime> _lastEventTimes = new();
         private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(2000);
-        
+
         // PID 缓存：PID -> (ProcessName, ExpireTime)
         private readonly ConcurrentDictionary<uint, (string Name, DateTime ExpireTime)> _processCache = new();
         private readonly TimeSpan _cacheDuration = TimeSpan.FromSeconds(30);
@@ -121,20 +121,20 @@ namespace CallRecording.Services
                         string classNameStr = className.ToString().Trim();
                         string processNameStr = processName.Trim();
                         string windowTitleStr = windowTitle.Trim();
-                        
+
                         // 跳过无效窗口
                         if (string.IsNullOrEmpty(classNameStr) || string.IsNullOrEmpty(processNameStr))
                             continue;
-                        
+
                         // 排除软件自身窗口
                         if (windowTitleStr.Contains("通话录音助手"))
                             continue;
 
-                        bool titleMatch = TargetTitles.Count == 0 || TargetTitles.Exists(t => 
+                        bool titleMatch = TargetTitles.Count == 0 || TargetTitles.Exists(t =>
                             !string.IsNullOrEmpty(t) && windowTitleStr.Contains(t));
-                        bool classMatch = TargetClassNames.Count == 0 || TargetClassNames.Exists(c => 
+                        bool classMatch = TargetClassNames.Count == 0 || TargetClassNames.Exists(c =>
                             !string.IsNullOrEmpty(c) && classNameStr.Contains(c));
-                        bool processMatch = TargetProcessNames.Count == 0 || TargetProcessNames.Exists(p => 
+                        bool processMatch = TargetProcessNames.Count == 0 || TargetProcessNames.Exists(p =>
                             !string.IsNullOrEmpty(p) && processNameStr.Contains(p));
                         if (!classMatch || !processMatch || !titleMatch)
                             continue;
@@ -203,7 +203,7 @@ namespace CallRecording.Services
         private void CleanupCache()
         {
             var now = DateTime.UtcNow;
-            
+
             // 清理 _lastEventTimes
             foreach (var key in _lastEventTimes.Keys)
             {
@@ -228,7 +228,15 @@ namespace CallRecording.Services
         public void Dispose()
         {
             _cts.Cancel();
-            try { _workerTask.Wait(1000); } catch { }
+            try
+            {
+                _workerTask.Wait(1000);
+            }
+            catch
+            {
+            }
+
+            _cts.Dispose();
             UnhookWinEvent(hWinEventHook);
         }
     }
