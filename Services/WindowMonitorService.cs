@@ -4,11 +4,13 @@ using System.Text;
 using CallRecording.Models;
 using MySharedProject;
 using MySharedProject.Model;
+using NLog;
 
 namespace CallRecording.Services;
 
 public class WindowMonitorService : IDisposable
 {
+    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
     private readonly Logms _logms;
     private WindowMonitor _windowMonitor;
     private bool _disposed = false;
@@ -26,7 +28,7 @@ public class WindowMonitorService : IDisposable
     {
         var targetClassNames = new List<string> { "AudioWnd|WXworkWindow|Qt51514QWindowIcon" };
         var targetProcessNames = new List<string> { "WeChat|Weixin" };
-        var targetTitles = new List<string> { "语音|微信音视频通话" };
+        var targetTitles = new List<string> { "语音|微信音视频通话|微信" };
 
         DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
         DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
@@ -47,7 +49,7 @@ public class WindowMonitorService : IDisposable
         }
         else
         {
-            ConfigurationHelper.SetSetting("监控窗口标题", "语音");
+            ConfigurationHelper.SetSetting("监控窗口标题", "语音|微信音视频通话|微信");
             DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
             targetTitles = new List<string> { DataSource.gbmvvm.Tt };
         }
@@ -65,7 +67,8 @@ public class WindowMonitorService : IDisposable
         WindowMonitor.GetWindowThreadProcessId(hwnd, out uint processId);
         Process process = Process.GetProcessById((int)processId);
         string processName = process.ProcessName;
-        string title = process.MainWindowTitle;
+        // 必须取指定窗口标题，不能用 MainWindowTitle（多窗口进程会取错）
+        string title = WindowInfo.GetWindowTitle(hwnd);
 
         if (processName == "QQ" && title != "语音通话")
         {
@@ -88,10 +91,20 @@ public class WindowMonitorService : IDisposable
             bool.TryParse(ConfigurationHelper.GetSetting("是否启用微信窗口大小检测"), out bool isCheckSize);
             if (isCheckSize)
             {
-                int w = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口宽度"));
-                int h = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口高度"));
-                if (width != w && height != h)
+                bool sizeWOk = int.TryParse(ConfigurationHelper.GetSetting("微信通话窗口宽度"), out int w);
+                bool sizeHOk = int.TryParse(ConfigurationHelper.GetSetting("微信通话窗口高度"), out int h);
+                if (!sizeWOk || !sizeHOk)
                 {
+                    _logms?.LogMessage(
+                        $"微信窗口尺寸配置无效(宽:{ConfigurationHelper.GetSetting("微信通话窗口宽度")}, 高:{ConfigurationHelper.GetSetting("微信通话窗口高度")})，已跳过大小检测继续录音",
+                        "警告");
+                }
+                else if (width != w && height != h)
+                {
+                    string msg =
+                        $"微信通话窗口尺寸不匹配，本次未自动录音。实际: {width}x{height}，配置: {w}x{h}。请在通话中点「添加监控窗口」重新校准，或取消勾选「微信窗口大小检测」";
+                    logger.Info(msg);
+                    _logms?.LogMessage(msg, "系统");
                     return;
                 }
             }

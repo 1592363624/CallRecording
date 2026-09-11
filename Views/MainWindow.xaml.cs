@@ -88,6 +88,7 @@ public partial class MainWindow
             DataSource.gbmvvm.IsWeChatChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("Weixin");
             DataSource.gbmvvm.IsWeChatWorkChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("WXWork");
             DataSource.gbmvvm.IsQQChecked = ConfigurationHelper.GetSetting("监控窗口进程名").Contains("QQ");
+            DataSource.gbmvvm.LoadWeChatSizeCheckSetting();
         };
         // 订阅通知按钮事件
         ToastNotificationManagerCompat.OnActivated += toastArgs =>
@@ -509,18 +510,21 @@ public partial class MainWindow
     {
         DataSource.gbmvvm.Cn = TextBox_Cn.Text;
         ConfigurationHelper.SetSetting("监控窗口类名", DataSource.gbmvvm.Cn);
+        (DataContext as MainViewModel)?.RequestMonitorRefresh();
     }
 
     private void TextBox_Pn_OnTextChanged(object sender, TextChangedEventArgs e)
     {
         DataSource.gbmvvm.Pn = TextBox_Pn.Text;
         ConfigurationHelper.SetSetting("监控窗口进程名", DataSource.gbmvvm.Pn);
+        (DataContext as MainViewModel)?.RequestMonitorRefresh();
     }
 
     private void TextBox_Tt_OnTextChanged(object sender, TextChangedEventArgs e)
     {
         DataSource.gbmvvm.Tt = TextBox_Tt.Text;
         ConfigurationHelper.SetSetting("监控窗口标题", DataSource.gbmvvm.Tt);
+        (DataContext as MainViewModel)?.RequestMonitorRefresh();
     }
 
     private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)

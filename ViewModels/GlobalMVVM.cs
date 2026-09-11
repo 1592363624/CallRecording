@@ -37,9 +37,17 @@ namespace CallRecording.ViewModels
         [ObservableProperty] public bool _isWeChatWorkChecked;
 
         [ObservableProperty] public bool _isQQChecked;
+
+        [ObservableProperty] public bool _isWeChatSizeCheckChecked;
         [ObservableProperty] public bool _isLog = false;
 
         private int 判断软件是否刚启动 = 0;
+        private bool _suppressSizeCheckEvent;
+
+        /// <summary>
+        /// 监控相关配置变更后触发，由 MainViewModel 订阅并重建窗口监听
+        /// </summary>
+        public static event EventHandler? MonitorConfigChanged;
 
         /// <summary>
         /// 构造函数，初始化全局MVVM数据
@@ -48,6 +56,22 @@ namespace CallRecording.ViewModels
         partial void OnIsWeChatCheckedChanged(bool value) => UpdateMonitorSettings();
         partial void OnIsWeChatWorkCheckedChanged(bool value) => UpdateMonitorSettings();
         partial void OnIsQQCheckedChanged(bool value) => UpdateMonitorSettings();
+
+        partial void OnIsWeChatSizeCheckCheckedChanged(bool value)
+        {
+            if (_suppressSizeCheckEvent) return;
+
+            ConfigurationHelper.SetSetting("是否启用微信窗口大小检测", value.ToString());
+            MonitorConfigChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void LoadWeChatSizeCheckSetting()
+        {
+            bool.TryParse(ConfigurationHelper.GetSetting("是否启用微信窗口大小检测"), out bool isSizeCheck);
+            _suppressSizeCheckEvent = true;
+            IsWeChatSizeCheckChecked = isSizeCheck;
+            _suppressSizeCheckEvent = false;
+        }
 
 
         // 计算每个部分的比例（总宽度为 wt）
@@ -67,7 +91,7 @@ namespace CallRecording.ViewModels
         /// </summary>
         private readonly Dictionary<string, (string Process, string Class, string Title)> _appConfigMap = new()
         {
-            { "微信", ("WeChat|Weixin", "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon", "语音|微信音视频通话") },
+            { "微信", ("WeChat|Weixin", "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon", "语音|微信音视频通话|微信") },
             { "QQNT", ("QQ", "Chrome_RenderWidgetHostHWND", "语音") },
             { "企业微信", ("WXWork", "WXworkWindow", "语音") }
         };
@@ -95,7 +119,7 @@ namespace CallRecording.ViewModels
             {
                 processList.AddRange("WeChat|Weixin".Split('|'));
                 classList.AddRange("AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon".Split('|'));
-                titleList.AddRange("语音|微信音视频通话".Split('|'));
+                titleList.AddRange("语音|微信音视频通话|微信".Split('|'));
             }
 
             if (IsWeChatWorkChecked)
@@ -150,6 +174,8 @@ namespace CallRecording.ViewModels
                 Cn = string.Join("|", finalClass) + "|要监控的窗口类名";
                 Tt = string.Join("|", finalTitle) + "|要监控的窗口标题";
             });
+
+            MonitorConfigChanged?.Invoke(this, EventArgs.Empty);
         }
 
 

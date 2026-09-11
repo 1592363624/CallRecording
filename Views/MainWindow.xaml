@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="CallRecording.Views.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -215,6 +215,14 @@
                                             Content="保留独立录音文件  "
                                             ToolTip="启用后，混音完成的独立录音文件（麦克风和扬声器）将不会被删除" />
 
+                                        <CheckBox
+                                            x:Name="WxSizeCheck"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            IsChecked="{Binding DataContext.IsWeChatSizeCheckChecked, ElementName=MonitorLst}"
+                                            Content="微信窗口大小检测  "
+                                            ToolTip="开启后，仅识别与添加监控窗口时记录的尺寸一致的微信通话窗口，避免误录主窗口。尺寸不一致会跳过自动录音；可在通话中重新点添加监控窗口校准，或取消本勾选。改动即时生效。" />
+
                                         <ComboBox
                                             x:Name="cb_AudioFormats"
                                             Margin="10,0,0,0"
@@ -247,7 +255,7 @@
                                 <Grid Grid.Row="2" x:Name="MonitorLst">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                                                 HorizontalAlignment="Left">
-                                        <TextBlock Text="监控列表:" ToolTip="选择后需要重启软件生效" Margin="5"></TextBlock>
+                                        <TextBlock Text="监控列表:" ToolTip="勾选后立即生效，无需重启软件" Margin="5"></TextBlock>
                                         <CheckBox Content="微信" Margin="5" IsChecked="{Binding IsWeChatChecked}" />
                                         <CheckBox Content="企业微信" Margin="5" IsChecked="{Binding IsWeChatWorkChecked}" />
                                         <CheckBox Content="QQNT" Margin="5" IsChecked="{Binding IsQQChecked}" />

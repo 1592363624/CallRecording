@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Threading;
 using CallRecording.Models;
 using CallRecording.Services;
 using CallRecording.Views;
@@ -28,6 +29,7 @@ namespace CallRecording.ViewModels
         private readonly RecordingService _recordingService;
         private readonly HotkeyService _hotkeyService;
         private WindowMonitorService _windowMonitorService;
+        private readonly DispatcherTimer _monitorRefreshTimer;
 
         [ObservableProperty] private string _recordingSavePath;
         [ObservableProperty] public AudioFormat _selectedFormat;
@@ -94,6 +96,9 @@ namespace CallRecording.ViewModels
             _trayIconManager.SetupTrayIcon(isStealth, ShowApp, ExitApp);
 
             InitializeWindowMonitorService();
+            _monitorRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+            _monitorRefreshTimer.Tick += OnMonitorRefreshTimerTick;
+            GlobalMVVM.MonitorConfigChanged += OnMonitorConfigChanged;
             Utils.软件启动次数add();
             _logms.LogMessage($"欢迎使用通话录音助手( ＾∀＾）／欢迎＼( ＾∀＾）", "通知");
 
@@ -388,6 +393,27 @@ namespace CallRecording.ViewModels
         {
             _windowMonitorService?.Dispose();
             InitializeWindowMonitorService();
+            _logms?.LogMessage("监控配置已更新，已即时生效", "系统设置");
+        }
+
+        public void RequestMonitorRefresh()
+        {
+            Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                _monitorRefreshTimer.Stop();
+                _monitorRefreshTimer.Start();
+            });
+        }
+
+        private void OnMonitorConfigChanged(object? sender, EventArgs e)
+        {
+            RequestMonitorRefresh();
+        }
+
+        private void OnMonitorRefreshTimerTick(object? sender, EventArgs e)
+        {
+            _monitorRefreshTimer.Stop();
+            ReinitializeWindowMonitor();
         }
 
         public void Dispose()
@@ -402,6 +428,8 @@ namespace CallRecording.ViewModels
 
             if (disposing)
             {
+                GlobalMVVM.MonitorConfigChanged -= OnMonitorConfigChanged;
+                _monitorRefreshTimer.Stop();
                 _hotkeyService?.Dispose();
                 _recordingService?.Dispose();
                 _windowMonitorService?.Dispose();
