@@ -28,8 +28,8 @@ namespace CallRecording.Models
 
         private readonly object _lockObject = new();
         private readonly Logms _logms;
-        private bool _isRecording;
-        private bool _isPaused = false;
+        private volatile bool _isRecording;
+        private volatile bool _isPaused = false;
 
         public WasapiLoopbackCapture _loopbackSource;
         private WasapiCapture _microphoneSource;
@@ -535,7 +535,9 @@ namespace CallRecording.Models
                 }
                 else
                 {
-                    _logms.LogMessage($"已保留独立录音文件: {Path.GetFileName(_outputSpeakerFileName)}, {Path.GetFileName(_outputMicrophoneFileName)}", "录音器");
+                    _logms.LogMessage(
+                        $"已保留独立录音文件: {Path.GetFileName(_outputSpeakerFileName)}, {Path.GetFileName(_outputMicrophoneFileName)}",
+                        "录音器");
                 }
             }
             catch (Exception ex)

@@ -1,10 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows;
 using System.Windows.Forms;
 using CallRecording.Models;
@@ -19,57 +16,23 @@ using static CallRecording.Models.Recorder;
 using Application = System.Windows.Application;
 using File = System.IO.File;
 using MessageBox = System.Windows.MessageBox;
-using Timer = System.Windows.Forms.Timer;
 
 namespace CallRecording.ViewModels
 {
-    public partial class MainViewModel : ObservableObject
+    public partial class MainViewModel : ObservableObject, IDisposable
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int X;
-            public int Y;
-        }
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetDpiForWindow(IntPtr hWnd);
-
-
         private static Logms _logms;
-        private readonly Recorder _recorder;
-        private Icon _defaultIcon;
-        private Timer _iconBlinkTimer;
-        private bool _isDefaultIcon = true;
-        private NotifyIcon _notifyIcon;
-        private Icon _recordingIcon;
-
-        private Keys _currentHotkey = Keys.F9;
-        private Keys _currentStopHotkey = Keys.End; // 添加结束热键
+        private readonly TrayIconManager _trayIconManager;
+        private readonly RecordingService _recordingService;
+        private readonly HotkeyService _hotkeyService;
+        private WindowMonitorService _windowMonitorService;
 
         [ObservableProperty] private string _recordingSavePath;
         [ObservableProperty] public AudioFormat _selectedFormat;
         [ObservableProperty] private bool _isKeepOriginalFiles;
-        private WindowMonitor _windowMonitor;
+        private bool _disposed = false;
 
         public MainViewModel()
         {
@@ -77,7 +40,7 @@ namespace CallRecording.ViewModels
             _logms = new Logms(Logs);
 
             // 读取并应用日志等级配置
-            try 
+            try
             {
                 string logLevelStr = ConfigurationHelper.GetSetting("LogLevel");
                 if (!string.IsNullOrEmpty(logLevelStr) && logLevelStr != "NULL")
@@ -86,7 +49,6 @@ namespace CallRecording.ViewModels
                 }
                 else
                 {
-                    // 默认关闭日志
                     SelectedLogLevel = LogLevel.Off;
                 }
             }
@@ -94,31 +56,23 @@ namespace CallRecording.ViewModels
             {
                 SelectedLogLevel = LogLevel.Off;
             }
-            
-            // 强制应用日志等级（解决NLog默认Info的问题）
+
             Utils.SetGlobalLogLevel(SelectedLogLevel);
 
-            // 添加音频格式选项
             AudioFormats = new List<AudioFormat>
             {
                 AudioFormat.MP3,
                 AudioFormat.WAV
             };
 
-            // 默认保存路径为软件的运行目录
-            //RecordingSavePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recordings");
             RecordingSavePath = AppDomain.CurrentDomain.BaseDirectory + "Recordings";
-            // 确保目录存在
             if (!Directory.Exists(RecordingSavePath))
             {
                 Directory.CreateDirectory(RecordingSavePath);
                 ConfigurationHelper.SetSetting("OutputDirectory", RecordingSavePath);
             }
 
-            //读取更改的保存路径
             RecordingSavePath = ConfigurationHelper.GetSetting("OutputDirectory");
-            //如果不是绝对目录就设置为绝对目录
-
             string? pt = Path.GetPathRoot(RecordingSavePath);
             if (pt == "")
             {
@@ -127,7 +81,6 @@ namespace CallRecording.ViewModels
 
             try
             {
-                // 显示启动通知
                 NotificationService.ShowNotification("通话录音助手正在后台运行", "点击此处可提前关闭通知!");
             }
             catch (Exception ex)
@@ -135,34 +88,19 @@ namespace CallRecording.ViewModels
                 _logms.LogMessage($"启动通知发送失败: {ex.Message}", "警告(不影响使用)");
             }
 
-            // 设置系统托盘图标
             bool.TryParse(ConfigurationHelper.GetSetting("是否隐身模式启动"), out bool isStealth);
 
-            _notifyIcon = TrayIconService.SetupTrayIcon(_logms, !isStealth, ShowApp, ExitApp);
+            _trayIconManager = new TrayIconManager(_logms);
+            _trayIconManager.SetupTrayIcon(isStealth, ShowApp, ExitApp);
 
-            // 初始化托盘图标
-            _defaultIcon = _notifyIcon.Icon; // 假设初始图标已经在_setupTrayIcon中设置
-            var assembly = Assembly.GetExecutingAssembly();
-            _recordingIcon =
-                new Icon(assembly.GetManifestResourceStream("CallRecording.src.通用软件图片闪动.ico")); // 替换成你的录音中图标路径
-
-            // 初始化定时器，间隔500毫秒（闪烁频率）
-            _iconBlinkTimer = new Timer
-            {
-                Interval = 500 // 500毫秒切换一次图标
-            };
-            _iconBlinkTimer.Tick += IconBlinkTimer_Tick;
-            //_iconBlinkTimer.Start();
-
-            // 初始化窗口监控
-            InitializeWindowMonitor();
+            InitializeWindowMonitorService();
             Utils.软件启动次数add();
             _logms.LogMessage($"欢迎使用通话录音助手( ＾∀＾）／欢迎＼( ＾∀＾）", "通知");
 
-            // 创建 Recorder 实例
-            _recorder = new Recorder(_logms, _selectedFormat);
+            _recordingService = new RecordingService(_logms);
+            _recordingService.RecordingStarted += OnRecordingStarted;
+            _recordingService.RecordingStopped += OnRecordingStopped;
 
-            //读取最后使用的音频格式
             Application.Current.Dispatcher.Invoke(() =>
             {
                 SelectedFormat = ConfigurationHelper.GetSetting("音频格式") == "MP3"
@@ -170,153 +108,44 @@ namespace CallRecording.ViewModels
                     : AudioFormat.WAV;
             });
 
-            // 读取是否保留独立录音文件的配置
             bool.TryParse(ConfigurationHelper.GetSetting("保留独立录音文件"), out bool isKeepOriginalFiles);
             IsKeepOriginalFiles = isKeepOriginalFiles;
 
-            //读取磁盘占用相关信息
             DataSource.gbmvvm.GetDiskInFo();
 
-            // 读取启停录音热键设置
-            string startHotkeyStr = ConfigurationHelper.GetSetting("录音快捷键");
-            if (!string.IsNullOrEmpty(startHotkeyStr) && Enum.TryParse<Keys>(startHotkeyStr, out Keys startKey))
-            {
-                _currentHotkey = startKey;
-            }
-
-            // 初始化时注册默认快捷键
-            GlobalHotkey.RegisterHotkey(_currentHotkey);
-            GlobalHotkey.OnHotkeyPressed += ToggleRecording; // 启停热键事件处理
-            GlobalHotkey.OnStopHotkeyPressed += StopRecordingHotkey; // 停止热键事件处理
-
-            // 读取自定义结束热键设置
-            string stopHotkeyStr = ConfigurationHelper.GetSetting("结束录音快捷键");
-            if (!string.IsNullOrEmpty(stopHotkeyStr) && Enum.TryParse<Keys>(stopHotkeyStr, out Keys stopKey))
-            {
-                _currentStopHotkey = stopKey;
-                GlobalHotkey.SetCustomStopHotkey(_currentStopHotkey);
-            }
+            _hotkeyService = new HotkeyService(_logms);
+            _hotkeyService.OnHotkeyPressed += OnHotkeyPressed;
+            _hotkeyService.OnStopHotkeyPressed += OnStopRecordingHotkey;
         }
 
-        private void OnRecorderStopped(object sender, EventArgs e)
+        private void OnRecordingStarted(object sender, EventArgs e)
+        {
+            Application.Current.Dispatcher.InvokeAsync(() => { _trayIconManager.StartBlinking(); });
+        }
+
+        private void OnRecordingStopped(object sender, EventArgs e)
         {
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                if (_iconBlinkTimer.Enabled)
-                {
-                    _iconBlinkTimer.Stop();
-                    _notifyIcon.Icon = _defaultIcon;
-                    // 如果是异常停止，可能需要补一条日志，但 Recorder 内部已经有了
-                }
-                
-                // 刷新磁盘信息
+                _trayIconManager.StopBlinking();
                 DataSource.gbmvvm.GetDiskInFo();
             });
         }
 
-        // 停止录音热键处理函数
-        private void StopRecordingHotkey()
+        private void OnHotkeyPressed()
         {
-            if (_recorder.IsRecording())
-            {
-                _iconBlinkTimer.Stop(); //通话录音的时候图标闪烁
-                StopRecording();
-            }
+            Application.Current.Dispatcher.InvokeAsync(() => { _recordingService.ToggleRecording(); });
         }
 
-        public void SetHotkey(Keys hotkey)
+        private void OnStopRecordingHotkey()
         {
-            // 注销当前快捷键
-            GlobalHotkey.UnregisterHotkey();
-
-            // 尝试注册新快捷键
-            bool success = GlobalHotkey.RegisterHotkey(hotkey);
-            if (success)
+            Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                _currentHotkey = hotkey;
-                ConfigurationHelper.SetSetting("录音快捷键", hotkey.ToString());
-            }
-            else
-            {
-                // 如果冲突，恢复之前的快捷键
-                GlobalHotkey.RegisterHotkey(_currentHotkey);
-                ConfigurationHelper.SetSetting("录音快捷键", _currentHotkey.ToString());
-            }
-        }
-
-        // 新增方法：设置结束热键
-        public void SetStopHotkey(Keys hotkey)
-        {
-            bool success = GlobalHotkey.SetCustomStopHotkey(hotkey);
-            if (success)
-            {
-                _currentStopHotkey = hotkey;
-                ConfigurationHelper.SetSetting("结束录音快捷键", hotkey.ToString());
-            }
-            else
-            {
-                // 如果冲突，恢复之前的快捷键
-                GlobalHotkey.SetCustomStopHotkey(_currentStopHotkey);
-                ConfigurationHelper.SetSetting("结束录音快捷键", _currentStopHotkey.ToString());
-            }
-        }
-
-        private void ToggleRecording()
-        {
-            if (_recorder.IsRecording())
-            {
-                if (_recorder.IsPaused())
+                if (_recordingService.IsRecording())
                 {
-                    // 如果当前是暂停状态，则恢复录音
-                    _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
-                    ResumeRecording();
+                    _recordingService.StopRecording();
                 }
-                else
-                {
-                    // 如果当前是录音状态，则暂停录音
-                    _iconBlinkTimer.Stop(); //通话录音的时候图标闪烁
-                    PauseRecording();
-                }
-            }
-            else
-            {
-                // 如果没有在录音，则开始录音
-                _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
-                StartRecording();
-            }
-        }
-
-        public void StartRecording()
-        {
-            if (!_recorder.IsRecording())
-            {
-                _recorder.StartRecording(RecordingSavePath, "通话"); //开始录音
-                _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
-            }
-        }
-
-        public void PauseRecording()
-        {
-            if (_recorder.IsRecording() && !_recorder.IsPaused())
-            {
-                _recorder.PauseRecording();
-                _iconBlinkTimer.Stop();
-            }
-        }
-
-        public void ResumeRecording()
-        {
-            if (_recorder.IsRecording() && _recorder.IsPaused())
-            {
-                _recorder.ResumeRecording();
-                _iconBlinkTimer.Start(); //通话录音的时候图标闪烁
-            }
-        }
-
-        ~MainViewModel()
-        {
-            // 注销全局快捷键
-            GlobalHotkey.UnregisterHotkey();
+            });
         }
 
         public List<AudioFormat> AudioFormats { get; }
@@ -340,21 +169,6 @@ namespace CallRecording.ViewModels
 
         public ObservableCollection<string> Logs { get; }
 
-        private void IconBlinkTimer_Tick(object? sender, EventArgs e)
-        {
-            if (_isDefaultIcon)
-            {
-                _notifyIcon.Icon = _recordingIcon;
-            }
-            else
-            {
-                _notifyIcon.Icon = _defaultIcon;
-            }
-
-            _isDefaultIcon = !_isDefaultIcon;
-        }
-
-        // 打开音频管理器命令
         [RelayCommand]
         private void OpenAudioManager()
         {
@@ -364,7 +178,6 @@ namespace CallRecording.ViewModels
             managerWindow.Show();
         }
 
-        // 选择保存路径命令
         [RelayCommand]
         private void ChooseSavePath()
         {
@@ -375,13 +188,12 @@ namespace CallRecording.ViewModels
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     RecordingSavePath = dialog.SelectedPath;
-                    ConfigurationHelper.SetSetting("OutputDirectory", RecordingSavePath);
+                    _recordingService.RecordingSavePath = dialog.SelectedPath;
                     _logms.LogMessage($"录音文件保存位置已设置为: {RecordingSavePath}", "设置");
                 }
             }
         }
 
-        // 清除日志命令
         [RelayCommand]
         private void ClearLogs()
         {
@@ -392,13 +204,6 @@ namespace CallRecording.ViewModels
             });
         }
 
-        // 添加监控窗口命令
-        [RelayCommand]
-        private void AddMo()
-        {
-        }
-
-        // 开机自启命令
         [RelayCommand]
         private void Startup()
         {
@@ -427,7 +232,6 @@ namespace CallRecording.ViewModels
             }
         }
 
-        // 隐身模式命令
         [RelayCommand]
         private void Stealth()
         {
@@ -446,12 +250,11 @@ namespace CallRecording.ViewModels
             }
         }
 
-        // 保留独立录音文件命令
         [RelayCommand]
         private void KeepOriginalFiles()
         {
             IsKeepOriginalFiles = !IsKeepOriginalFiles;
-            ConfigurationHelper.SetSetting("保留独立录音文件", IsKeepOriginalFiles.ToString());
+            _recordingService.IsKeepOriginalFiles = IsKeepOriginalFiles;
 
             if (IsKeepOriginalFiles)
             {
@@ -484,13 +287,11 @@ namespace CallRecording.ViewModels
             }
             finally
             {
-                // 显式释放COM资源
                 if (shortcut != null) Marshal.ReleaseComObject(shortcut);
                 if (shell != null) Marshal.ReleaseComObject(shell);
             }
         }
 
-        // 显示应用程序窗口
         private void ShowApp(object sender, EventArgs e)
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -498,197 +299,69 @@ namespace CallRecording.ViewModels
                 Application.Current.MainWindow?.Show();
                 Application.Current.MainWindow.WindowState = WindowState.Normal;
                 Application.Current.MainWindow.Activate();
-                //_logms.LogMessage("应用程序窗口已显示。", "系统");
             });
         }
 
-        // 退出应用程序
         public void ExitApp(object sender, EventArgs e)
         {
-            GlobalHotkey.UnregisterHotkey();
             Application.Current.Dispatcher.Invoke(() =>
             {
                 _logms.LogMessage("退出应用程序。", "系统");
-                TrayIconService.CleanupTrayIcon(_notifyIcon);
-                _windowMonitor.Dispose();
+                Dispose();
                 Application.Current.Shutdown();
             });
         }
 
-        // 重新初始化窗口监控
-        public void ReinitializeWindowMonitor()
+        private void InitializeWindowMonitorService()
         {
-            // 释放现有实例
-            _windowMonitor?.Dispose();
-            // 重新初始化
-            InitializeWindowMonitor();
+            _windowMonitorService = new WindowMonitorService(_logms);
+            _windowMonitorService.WindowCreated += OnWindowCreated;
+            _windowMonitorService.WindowDestroyed += OnWindowDestroyed;
         }
 
-        // 初始化窗口监控
-        private void InitializeWindowMonitor()
-        {
-            var targetClassNames = new List<string> { "AudioWnd|WXworkWindow|Qt51514QWindowIcon" };
-            var targetProcessNames = new List<string> { "WeChat|Weixin" };
-            var targetTitles = new List<string> { "语音|微信音视频通话" };
-            // GlobalMVVM gmvvm = new GlobalMVVM();
-            DataSource.gbmvvm.Cn = ConfigurationHelper.GetSetting("监控窗口类名");
-            DataSource.gbmvvm.Pn = ConfigurationHelper.GetSetting("监控窗口进程名");
-            DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
-
-            if (!string.IsNullOrEmpty(DataSource.gbmvvm.Cn) && !string.IsNullOrEmpty(DataSource.gbmvvm.Pn) &&
-                !string.IsNullOrEmpty(DataSource.gbmvvm.Tt))
-            {
-                targetClassNames = DataSource.gbmvvm.Cn.Split('|')
-                    .Where(s => !string.IsNullOrWhiteSpace(s))
-                    .ToList();
-                targetProcessNames = DataSource.gbmvvm.Pn.Split('|')
-                    .Where(s => !string.IsNullOrWhiteSpace(s))
-                    .ToList();
-                targetTitles = DataSource.gbmvvm.Tt.Split('|')
-                    .Where(s => !string.IsNullOrWhiteSpace(s))
-                    .ToList();
-            }
-            else
-            {
-                ConfigurationHelper.SetSetting("监控窗口标题", "语音"); //添加默认监控窗口标题,禁止为空
-                DataSource.gbmvvm.Tt = ConfigurationHelper.GetSetting("监控窗口标题");
-                targetTitles = [DataSource.gbmvvm.Tt];
-            }
-
-            _windowMonitor = new WindowMonitor(targetClassNames, targetProcessNames, targetTitles);
-            _windowMonitor.WindowCreated += OnWindowCreated;
-            _windowMonitor.WindowDestroyed += OnWindowDestroyed;
-        }
-
-
-        // 窗口创建事件处理
         private void OnWindowCreated(object sender, IntPtr hwnd)
         {
-            // 获取窗口类名
-            StringBuilder className = new StringBuilder(256);
-            WindowMonitor.GetClassName(hwnd, className, className.Capacity);
-
-            // 获取窗口所属进程
-            WindowMonitor.GetWindowThreadProcessId(hwnd, out uint processId);
-            Process process = Process.GetProcessById((int)processId);
-            string processName = process.ProcessName;
-            string title = process.MainWindowTitle;
-
-            // 软件适配微调
-            if (processName == "QQ") // QQNT
+            Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                if (title != "语音通话")
-                {
-                    Debug.WriteLine($"检测到QQNT窗口: {title}, 不是语音通话窗口, 不录音");
-                    return;
-                }
-            }
-
-            int width = 0;
-            int height = 0;
-            if (processName == "Weixin") // 微信测试版
-            {
-                RECT clientRect;
-                if (GetClientRect(hwnd, out clientRect))
-                {
-                    int clientWidth = clientRect.Right - clientRect.Left;
-                    int clientHeight = clientRect.Bottom - clientRect.Top;
-
-                    // 自动调整竖屏/横屏逻辑：长边作为高度，短边作为宽度
-                    width = Math.Min(clientWidth, clientHeight);
-                    height = Math.Max(clientWidth, clientHeight);
-
-                    logger.Info($"窗口: {title}, 客户区尺寸（Weixin）: {width}x{height}");
-                    Debug.WriteLine($"窗口: {title}, 客户区尺寸（竖屏逻辑）: {width}x{height}");
-                }
-
-                //if (!((width == 360 && height == 640) || (width == 640 && height == 480)))
-                //{
-                //    Debug.WriteLine($"检测到微信窗口: {title}, 尺寸不符合, 不录音");
-                //    return;
-                //}
-
-                // 检查是否启用窗口大小检测
-                bool.TryParse(ConfigurationHelper.GetSetting("是否启用微信窗口大小检测"), out bool isCheckSize);
-                if (isCheckSize)
-                {
-                    int w = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口宽度"));
-                    int h = int.Parse(ConfigurationHelper.GetSetting("微信通话窗口高度"));
-                    if (width != w && height != h)
-                    {
-                        Debug.WriteLine($"检测到微信窗口: {title}, 尺寸不符合, 不录音");
-                        //_logms.LogMessage($"检测到微信窗口: {title}, 宽高: {width}x{height}", "系统");
-                        logger.Info($"检测到微信窗口: {title}, 宽高: {width}x{height}");
-                        return;
-                    }
-                }
-            }
-
-            // 通过这里判定为通话窗口
-            Debug.WriteLine($"检测到通话窗口: {title}，宽高: {width}x{height}");
-            _logms.LogMessage($"检测到通话窗口: {title}", "系统");
-
-            // 开始录音
-            if (!_recorder.IsRecording())
-            {
-                _recorder.StartRecording(RecordingSavePath, processName + "_" + title); // 开始录音
-                _iconBlinkTimer.Start(); // 通话录音时图标闪烁
-            }
+                string processName = GetProcessNameFromHwnd(hwnd);
+                string title = GetWindowTitleFromHwnd(hwnd);
+                _recordingService.StartRecording(processName + "_" + title);
+            });
         }
 
-        // Win32 DPI 相关函数
-        [DllImport("user32.dll")]
-        static extern IntPtr GetDC(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
-
-        [DllImport("gdi32.dll")]
-        static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
-
-
-        // 窗口销毁事件处理
         private void OnWindowDestroyed(object sender, IntPtr hwnd)
         {
-            StopRecording();
+            Application.Current.Dispatcher.InvokeAsync(() => { _recordingService.StopRecording(); });
         }
 
-        // 停止录音
-        public void StopRecording()
+        private string GetProcessNameFromHwnd(IntPtr hwnd)
         {
-            if (_recorder.IsRecording())
+            WindowMonitor.GetWindowThreadProcessId(hwnd, out uint processId);
+            try
             {
-                _logms.LogMessage("通话结束，停止录音并保存文件。", "系统"); //停止录音
-                _recorder.StopRecording();
-                _iconBlinkTimer.Stop(); // 停止图标闪烁
-                _notifyIcon.Icon = _defaultIcon; // 恢复为默认图标
-
-                //读取磁盘占用相关信息
-
-                DataSource.gbmvvm.GetDiskInFo();
-
-                //Task.Run(() =>
-                //{
-                //    var path = AppDomain.CurrentDomain.BaseDirectory + ConfigurationHelper.GetSetting("OutputDirectory");
-                //    var DiskInfoIn = Utils.GetDiskInfoInMB(path);
-
-                //    TotalSize = Utils.FormatSize(DiskInfoIn.总大小);
-                //    AvailableFreeSpace = Utils.FormatSize(DiskInfoIn.可用空间);
-                //    UsedSpace = Utils.FormatSize(DiskInfoIn.已用空间);
-                //    IusedSpace = Utils.FormatSize(Utils.GetRecSize(path));
-                //});
+                Process process = Process.GetProcessById((int)processId);
+                return process.ProcessName;
             }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        private string GetWindowTitleFromHwnd(IntPtr hwnd)
+        {
+            return WindowInfo.GetWindowTitle(hwnd);
         }
 
         partial void OnSelectedFormatChanged(AudioFormat value)
         {
-            if (_recorder.IsRecording())
+            if (_recordingService.IsRecording())
             {
                 MessageBoxResult result =
                     MessageBox.Show("检测到正在录制,为更改音频格式需要停止录制,是否继续更换音频格式", "设置更改", MessageBoxButton.OKCancel);
                 if (result == MessageBoxResult.OK)
                 {
-                    StopRecording();
+                    _recordingService.StopRecording();
                     _logms.LogMessage($"所选录制音频格式已更改为: {value}", "用户确认更改音频格式");
                 }
                 else if (result == MessageBoxResult.Cancel)
@@ -697,8 +370,50 @@ namespace CallRecording.ViewModels
                 }
             }
 
-            _recorder.UpdateAudioFormat(value);
+            _recordingService.SelectedFormat = value;
             _logms.LogMessage($"所选录制音频格式已更改为: {value}", "设置更改");
+        }
+
+        public void SetHotkey(Keys hotkey)
+        {
+            _hotkeyService.SetHotkey(hotkey);
+        }
+
+        public void SetStopHotkey(Keys hotkey)
+        {
+            _hotkeyService.SetStopHotkey(hotkey);
+        }
+
+        public void ReinitializeWindowMonitor()
+        {
+            _windowMonitorService?.Dispose();
+            InitializeWindowMonitorService();
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                _hotkeyService?.Dispose();
+                _recordingService?.Dispose();
+                _windowMonitorService?.Dispose();
+                _trayIconManager?.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        ~MainViewModel()
+        {
+            Dispose(false);
         }
     }
 }

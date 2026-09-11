@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -10,7 +10,7 @@ using NAudio.Wave.SampleProviders;
 
 namespace CallRecording.ViewModels
 {
-    public partial class AudioPlayerViewModel : ObservableObject
+    public partial class AudioPlayerViewModel : ObservableObject, IDisposable
     {
         private IWavePlayer wavePlayer;
         private AudioFileReader audioFile;
@@ -21,6 +21,8 @@ namespace CallRecording.ViewModels
         private string timeDisplay;
         private string playButtonText;
         private readonly Logms _logms;
+        private DispatcherTimer _timer;
+        private bool _disposed = false;
 
         public ICommand PlayPauseCommand { get; }
         public ICommand RewindCommand { get; }
@@ -79,19 +81,18 @@ namespace CallRecording.ViewModels
         {
             this._logms = logms;
             PlayButtonText = "▶";
-            Duration = 100; // 设置滑块最大值
+            Duration = 100;
 
             PlayPauseCommand = new RelayCommand(ExecutePlayPause);
             RewindCommand = new RelayCommand(ExecuteRewind);
             ForwardCommand = new RelayCommand(ExecuteForward);
 
-            // 启动定时器更新进度
-            var timer = new DispatcherTimer
+            _timer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(200) // 降低UI更新频率，减少性能开销
+                Interval = TimeSpan.FromMilliseconds(200)
             };
-            timer.Tick += Timer_Tick;
-            timer.Start();
+            _timer.Tick += Timer_Tick;
+            _timer.Start();
         }
 
         public void LoadFile(string filePath)
@@ -212,15 +213,37 @@ namespace CallRecording.ViewModels
                     audioFile.Dispose();
                     audioFile = null;
                 }
-
-                // 强制进行垃圾回收，释放音频相关资源
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
             }
             catch (Exception ex)
             {
                 _logms.LogMessage($"清理音频资源时出错: {ex.Message}", "音频预览");
             }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                _timer?.Stop();
+                _timer = null;
+
+                CleanupAudio();
+            }
+
+            _disposed = true;
+        }
+
+        ~AudioPlayerViewModel()
+        {
+            Dispose(false);
         }
     }
 }
