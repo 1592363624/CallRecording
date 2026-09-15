@@ -200,6 +200,31 @@ namespace CallRecording.ViewModels
         }
 
         [RelayCommand]
+        private void ResetSavePath()
+        {
+            // 重置为软件根目录下的默认录音目录（与 RecordingService 启动时的回退值一致）
+            string defaultDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recordings");
+            try
+            {
+                if (!Directory.Exists(defaultDir))
+                {
+                    Directory.CreateDirectory(defaultDir);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logms.LogMessage($"创建默认目录失败: {ex.Message}", "警告(不影响使用)");
+                return;
+            }
+
+            RecordingSavePath = defaultDir;
+            ConfigurationHelper.SetSetting("OutputDirectory", RecordingSavePath);
+            _recordingService.RecordingSavePath = defaultDir;
+            DataSource.gbmvvm.GetDiskInFo();
+            _logms.LogMessage($"录音文件保存位置已重置为默认目录: {RecordingSavePath}", "设置");
+        }
+
+        [RelayCommand]
         private void ClearLogs()
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -319,7 +344,9 @@ namespace CallRecording.ViewModels
 
         private void InitializeWindowMonitorService()
         {
-            _windowMonitorService = new WindowMonitorService(_logms);
+            // 确保 GlobalMVVM 已加载监控窗口列表（首次启动时 MainViewModel 早于 Loaded 执行）
+            DataSource.gbmvvm.LoadMonitoredWindows();
+            _windowMonitorService = new WindowMonitorService(_logms, DataSource.gbmvvm.MonitoredWindows);
             _windowMonitorService.WindowCreated += OnWindowCreated;
             _windowMonitorService.WindowDestroyed += OnWindowDestroyed;
         }
@@ -391,8 +418,15 @@ namespace CallRecording.ViewModels
 
         public void ReinitializeWindowMonitor()
         {
-            _windowMonitorService?.Dispose();
-            InitializeWindowMonitorService();
+            // 复用现有服务实例，把最新的监控窗口列表推进去；底层 hook 会被重建。
+            if (_windowMonitorService == null)
+            {
+                InitializeWindowMonitorService();
+            }
+            else
+            {
+                _windowMonitorService.UpdateMonitoredWindows(DataSource.gbmvvm.MonitoredWindows);
+            }
             _logms?.LogMessage("监控配置已更新，已即时生效", "系统设置");
         }
 

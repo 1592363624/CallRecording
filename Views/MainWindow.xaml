@@ -176,12 +176,17 @@
                                                  TextWrapping="Wrap"
                                                  VerticalScrollBarVisibility="Auto" />
                                     </StackPanel>
-                                    <Button Margin="0,0,10,0" Command="{Binding ChooseSavePathCommand}"
-                                            Content="选择保存路径" />
+                                    <Button x:Name="Btn_ChooseSavePath"
+                                            Margin="0,0,10,0"
+                                            Command="{Binding ChooseSavePathCommand}"
+                                            Content="选择保存路径"
+                                            ToolTip="左键: 选择录音文件保存路径。&#10;右键: 重置为软件根目录下的默认目录(Recordings/)。"
+                                            MouseRightButtonDown="Btn_ChooseSavePath_MouseRightButtonDown" />
                                     <Button Margin="0,0,10,0" Command="{Binding ClearLogsCommand}" Content="清除日志" />
                                     <Button
                                         x:Name="adm"
                                         Content="添加监控窗口"
+                                        ToolTip="按住左键拖动到要监控的目标窗口上，再松开按钮即可添加（点击无效）。本软件自身的窗口会被自动忽略。"
                                         PreviewMouseLeftButtonDown="adm_MouseLeftButtonDown"
                                         PreviewMouseRightButtonDown="adm_MouseRightButtonDown"
                                         PreviewMouseLeftButtonUp="adm_MouseLeftButtonUp"
@@ -215,14 +220,6 @@
                                             Content="保留独立录音文件  "
                                             ToolTip="启用后，混音完成的独立录音文件（麦克风和扬声器）将不会被删除" />
 
-                                        <CheckBox
-                                            x:Name="WxSizeCheck"
-                                            Margin="10,0,0,0"
-                                            VerticalAlignment="Center"
-                                            IsChecked="{Binding DataContext.IsWeChatSizeCheckChecked, ElementName=MonitorLst}"
-                                            Content="微信窗口大小检测  "
-                                            ToolTip="开启后，仅识别与添加监控窗口时记录的尺寸一致的微信通话窗口，避免误录主窗口。尺寸不一致会跳过自动录音；可在通话中重新点添加监控窗口校准，或取消本勾选。改动即时生效。" />
-
                                         <ComboBox
                                             x:Name="cb_AudioFormats"
                                             Margin="10,0,0,0"
@@ -252,46 +249,81 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <Grid Grid.Row="2" x:Name="MonitorLst">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
-                                                HorizontalAlignment="Left">
-                                        <TextBlock Text="监控列表:" ToolTip="勾选后立即生效，无需重启软件" Margin="5"></TextBlock>
-                                        <CheckBox Content="微信" Margin="5" IsChecked="{Binding IsWeChatChecked}" />
-                                        <CheckBox Content="企业微信" Margin="5" IsChecked="{Binding IsWeChatWorkChecked}" />
-                                        <CheckBox Content="QQNT" Margin="5" IsChecked="{Binding IsQQChecked}" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <Grid Grid.Row="3" x:Name="Grid_CP">
+                                <Grid Grid.Row="2" x:Name="MonitorLstRoot">
                                     <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                         <RowDefinition Height="*" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                               Text="正在监控的窗口进程名:">
-                                    </TextBlock>
-                                    <TextBox x:Name="TextBox_Pn" TextChanged="TextBox_Pn_OnTextChanged" Grid.Row="1"
-                                             TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                             Text="{Binding Pn, UpdateSourceTrigger=PropertyChanged, TargetNullValue='绑定失败'}">
-                                    </TextBox>
-                                    <TextBlock Grid.Row="2" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                               Text="正在监控的窗口类名:">
-                                    </TextBlock>
-                                    <TextBox x:Name="TextBox_Cn" TextChanged="TextBox_Cn_OnTextChanged" Grid.Row="3"
-                                             TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                             Text="{Binding Cn, UpdateSourceTrigger=PropertyChanged, TargetNullValue='绑定失败'}">
-                                    </TextBox>
-                                    <TextBlock Grid.Row="4" TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                               Text="正在监控的窗口标题:">
-                                    </TextBlock>
-                                    <TextBox x:Name="TextBox_Tt" TextChanged="TextBox_Tt_OnTextChanged" Grid.Row="5"
-                                             TextWrapping="Wrap" ToolTip="不知道怎么修改的建议不要随意修改"
-                                             Text="{Binding Tt, UpdateSourceTrigger=PropertyChanged, TargetNullValue='绑定失败'}">
-                                    </TextBox>
+
+                                    <StackPanel Grid.Row="0" Orientation="Horizontal"
+                                                VerticalAlignment="Center" Margin="0,8,0,4">
+                                        <TextBlock Text="监控列表"
+                                                   VerticalAlignment="Center"
+                                                   FontWeight="Bold"
+                                                   Margin="0,0,8,0"
+                                                   ToolTip="每行对应一个待监控窗口；勾选「启用大小检测」并填写宽高后，将按尺寸过滤，避免误录主窗口" />
+                                        <Button Content="清空"
+                                                Margin="6,0,0,0"
+                                                Padding="10,2"
+                                                Command="{Binding ClearMonitoredWindowsCommand}"
+                                                ToolTip="清空整个监控列表（不可撤销）" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="1"
+                                               Margin="0,0,0,4"
+                                               Foreground="Gray"
+                                               TextWrapping="Wrap"
+                                               Text="提示: 双击单元格可直接编辑。窗口进程名/类名/标题支持用 '|' 分隔多个候选值,按模糊匹配。宽高/启用检测留空则不进行尺寸校验。" />
+
+                                    <DataGrid x:Name="DataGrid_MonitoredWindows"
+                                              Grid.Row="2"
+                                              AutoGenerateColumns="False"
+                                              CanUserAddRows="False"
+                                              CanUserDeleteRows="False"
+                                              HeadersVisibility="Column"
+                                              SelectionMode="Single"
+                                              ItemsSource="{Binding MonitoredWindows}"
+                                              VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Auto"
+                                              MinHeight="180"
+                                              materialDesign:DataGridAssist.CellPadding="6,4"
+                                              materialDesign:DataGridAssist.ColumnHeaderPadding="8,4">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="进程名"
+                                                                Binding="{Binding ProcessName, UpdateSourceTrigger=PropertyChanged}"
+                                                                Width="160"
+                                                                ToolTipService.ToolTip="窗口所属进程名,不含 .exe,支持 '|' 分隔多个" />
+                                            <DataGridTextColumn Header="窗口类名"
+                                                                Binding="{Binding ClassName, UpdateSourceTrigger=PropertyChanged}"
+                                                                Width="180"
+                                                                ToolTipService.ToolTip="窗口类名,支持 '|' 分隔多个" />
+                                            <DataGridTextColumn Header="窗口标题"
+                                                                Binding="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                                                Width="160"
+                                                                ToolTipService.ToolTip="窗口标题片段,支持 '|' 分隔多个" />
+                                            <DataGridTextColumn Header="宽"
+                                                                Binding="{Binding Width, UpdateSourceTrigger=LostFocus, TargetNullValue=''}"
+                                                                Width="70" />
+                                            <DataGridTextColumn Header="高"
+                                                                Binding="{Binding Height, UpdateSourceTrigger=LostFocus, TargetNullValue=''}"
+                                                                Width="70" />
+                                            <DataGridCheckBoxColumn Header="启用大小检测"
+                                                                    Binding="{Binding SizeCheckEnabled, UpdateSourceTrigger=PropertyChanged}"
+                                                                    Width="100"
+                                                                    ToolTipService.ToolTip="勾选且宽高都填写后,会按客户区尺寸过滤,避免误录主窗口" />
+                                            <DataGridTemplateColumn Header="操作" Width="80">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Button Content="删除"
+                                                                Padding="6,1"
+                                                                Command="{Binding DataContext.RemoveMonitoredWindowCommand, ElementName=DataGrid_MonitoredWindows}"
+                                                                CommandParameter="{Binding}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
                                 </Grid>
 
                             </Grid>

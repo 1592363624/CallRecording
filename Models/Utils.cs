@@ -427,7 +427,7 @@ exit
         {
             if (ConfigurationHelper.GetSetting("OutputDirectory") == "NULL")
             {
-                ConfigurationHelper.SetSetting("OutputDirectory", "微信通话录音文件/");
+                ConfigurationHelper.SetSetting("OutputDirectory", "Recordings/");
             }
 
             if (ConfigurationHelper.GetSetting("Device_info") == "NULL")
@@ -518,6 +518,12 @@ exit
             if (ConfigurationHelper.GetSetting("监控窗口标题") == "NULL")
             {
                 ConfigurationHelper.SetSetting("监控窗口标题", "语音|微信音视频通话|微信");
+            }
+
+            // 新版监控窗口列表（JSON 数组），首次启动时写入默认值，由 GlobalMVVM 决定是否替换为迁移自旧 key 的内容
+            if (ConfigurationHelper.GetSetting("监控窗口列表") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("监控窗口列表", string.Empty);
             }
 
             if (ConfigurationHelper.GetSetting("上次执行检测更新时间") == "NULL")

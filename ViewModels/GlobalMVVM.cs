@@ -1,8 +1,12 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Windows;
 using CallRecording.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MySharedProject.Model;
+using Newtonsoft.Json;
 using NLog;
 
 namespace CallRecording.ViewModels
@@ -13,10 +17,6 @@ namespace CallRecording.ViewModels
         [ObservableProperty] public long availableFreeSpace;
 
         [ObservableProperty] public string availableFreeSpaceFM;
-
-        [ObservableProperty] public string cn;
-        [ObservableProperty] public string pn;
-        [ObservableProperty] public string tt;
 
         [ObservableProperty] public long iusedSpace;
 
@@ -32,47 +32,151 @@ namespace CallRecording.ViewModels
 
         [ObservableProperty] public int wt = 500;
 
-        [ObservableProperty] public bool _isWeChatChecked;
-
-        [ObservableProperty] public bool _isWeChatWorkChecked;
-
-        [ObservableProperty] public bool _isQQChecked;
-
-        [ObservableProperty] public bool _isWeChatSizeCheckChecked;
         [ObservableProperty] public bool _isLog = false;
 
-        private int 判断软件是否刚启动 = 0;
-        private bool _suppressSizeCheckEvent;
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+        /// <summary>
+        /// 监控窗口列表：每一项对应一个可监控窗口（含可选的尺寸检测配置）。
+        /// 任何变更（增删/属性修改）都会自动写回 appsettings.json，并通过
+        /// <see cref="MonitorConfigChanged"/> 通知服务重建窗口监听。
+        /// </summary>
+        [ObservableProperty]
+        private ObservableCollection<MonitoredWindow> monitoredWindows = new();
 
         /// <summary>
         /// 监控相关配置变更后触发，由 MainViewModel 订阅并重建窗口监听
         /// </summary>
         public static event EventHandler? MonitorConfigChanged;
 
-        /// <summary>
-        /// 构造函数，初始化全局MVVM数据
-        /// </summary>
-
-        partial void OnIsWeChatCheckedChanged(bool value) => UpdateMonitorSettings();
-        partial void OnIsWeChatWorkCheckedChanged(bool value) => UpdateMonitorSettings();
-        partial void OnIsQQCheckedChanged(bool value) => UpdateMonitorSettings();
-
-        partial void OnIsWeChatSizeCheckCheckedChanged(bool value)
+        public GlobalMVVM()
         {
-            if (_suppressSizeCheckEvent) return;
+            // 订阅集合变更：增删时挂/解绑子项属性变化，触发持久化与服务重建
+            MonitoredWindows.CollectionChanged += OnMonitoredWindowsCollectionChanged;
+        }
 
-            ConfigurationHelper.SetSetting("是否启用微信窗口大小检测", value.ToString());
+        /// <summary>
+        /// 从 appsettings.json 读取监控窗口列表。
+        /// 兼容旧版：若新 key 不存在，从 监控窗口进程名/类名/标题 + 微信通话窗口宽/高 + 是否启用大小检测 自动迁移。
+        /// </summary>
+        public void LoadMonitoredWindows()
+        {
+            string raw = ConfigurationHelper.GetSetting("监控窗口列表");
+            List<MonitoredWindow> loaded;
+
+            if (!string.IsNullOrWhiteSpace(raw) && raw != "NULL")
+            {
+                try
+                {
+                    loaded = JsonConvert.DeserializeObject<List<MonitoredWindow>>(raw) ?? new List<MonitoredWindow>();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, "反序列化监控窗口列表失败，回退到默认配置");
+                    loaded = BuildDefaultList();
+                }
+            }
+            else
+            {
+                loaded = MigrateFromLegacyConfig();
+            }
+
+            if (loaded.Count == 0)
+            {
+                loaded = BuildDefaultList();
+            }
+
+            ReplaceMonitoredWindows(loaded);
+        }
+
+        /// <summary>
+        /// 把当前 MonitoredWindows 列表持久化到 appsettings.json，并通知服务重建。
+        /// </summary>
+        private void PersistAndRaiseChanged()
+        {
+            try
+            {
+                string json = JsonConvert.SerializeObject(MonitoredWindows.ToList(), Formatting.None);
+                ConfigurationHelper.SetSetting("监控窗口列表", json);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "保存监控窗口列表失败");
+            }
+
             MonitorConfigChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public void LoadWeChatSizeCheckSetting()
+        /// <summary>
+        /// 把外部传入的列表替换到当前 ObservableCollection（先解绑旧项，再绑定新项）。
+        /// </summary>
+        private void ReplaceMonitoredWindows(IEnumerable<MonitoredWindow> items)
         {
-            bool.TryParse(ConfigurationHelper.GetSetting("是否启用微信窗口大小检测"), out bool isSizeCheck);
-            _suppressSizeCheckEvent = true;
-            IsWeChatSizeCheckChecked = isSizeCheck;
-            _suppressSizeCheckEvent = false;
+            // 解绑旧项
+            foreach (var old in MonitoredWindows)
+            {
+                old.PropertyChanged -= OnMonitoredWindowItemChanged;
+            }
+
+            // 加载时自动去重：保留第一次出现的条目，丢弃后续重复项
+            var seen = new HashSet<string>();
+            var deduped = new List<MonitoredWindow>();
+            foreach (var item in items)
+            {
+                if (item == null) continue;
+                string key = BuildDedupeKey(item);
+                if (seen.Add(key))
+                {
+                    deduped.Add(item);
+                }
+                else
+                {
+                    Logger.Info($"加载时已过滤重复监控条目: {item.DisplayName}");
+                }
+            }
+
+            MonitoredWindows.Clear();
+            foreach (var item in deduped)
+            {
+                MonitoredWindows.Add(item);
+            }
+
+            // 订阅新项
+            foreach (var item in MonitoredWindows)
+            {
+                item.PropertyChanged += OnMonitoredWindowItemChanged;
+            }
+
+            // 触发一次刷新（确保服务至少初始化一次）
+            MonitorConfigChanged?.Invoke(this, EventArgs.Empty);
         }
 
+        private void OnMonitoredWindowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+            {
+                foreach (MonitoredWindow item in e.NewItems)
+                {
+                    item.PropertyChanged += OnMonitoredWindowItemChanged;
+                }
+            }
+
+            if (e.OldItems != null)
+            {
+                foreach (MonitoredWindow item in e.OldItems)
+                {
+                    item.PropertyChanged -= OnMonitoredWindowItemChanged;
+                }
+            }
+
+            PersistAndRaiseChanged();
+        }
+
+        private void OnMonitoredWindowItemChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            // 任一字段修改（宽高/勾选/进程名等）都触发持久化与服务重建
+            PersistAndRaiseChanged();
+        }
 
         // 计算每个部分的比例（总宽度为 wt）
         public double UsedSpaceProportion => (TotalSize > 0) ? ((double)UsedSpace / TotalSize) * Wt : 0;
@@ -86,98 +190,181 @@ namespace CallRecording.ViewModels
         public double TotalUsedProportion => UsedSpaceProportion + AvailableFreeSpaceProportion;
 
         /// <summary>
-        /// 应用程序配置映射，存储不同应用程序的进程名、窗口类名和标题的匹配规则
-        /// 用于监控和识别特定的应用程序窗口进行录音
+        /// 默认监控列表：内置微信/企业微信/QQNT 的常见组合。
+        /// 微信条目默认开启大小检测并带上 360x640 的兜底值；如实际窗口尺寸不一致，用户可重新校准或留空。
         /// </summary>
-        private readonly Dictionary<string, (string Process, string Class, string Title)> _appConfigMap = new()
+        private List<MonitoredWindow> BuildDefaultList()
         {
-            { "微信", ("WeChat|Weixin", "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon", "语音|微信音视频通话|微信") },
-            { "QQNT", ("QQ", "Chrome_RenderWidgetHostHWND", "语音") },
-            { "企业微信", ("WXWork", "WXworkWindow", "语音") }
-        };
-
-        public void UpdateMonitorSettings()
-        {
-            //因为首次初始化这个类的时候会执行一次,所以需要把第一次排除掉
-            if (判断软件是否刚启动 == 0)
+            return new List<MonitoredWindow>
             {
-                // 读取配置文件初始化IsWeChatChecked, IsWeChatWorkChecked, IsQQChecked
-                string processConfig = ConfigurationHelper.GetSetting("监控窗口进程名");
-                IsWeChatChecked = processConfig.Contains("WeChat") || processConfig.Contains("Weixin");
-                IsWeChatWorkChecked = processConfig.Contains("WXWork");
-                IsQQChecked = processConfig.Contains("QQ");
-                判断软件是否刚启动++;
-                return; // 首次初始化只设置属性值，不保存配置
-            }
-
-            var processList = new List<string>();
-            var classList = new List<string>();
-            var titleList = new List<string>();
-
-            // 根据勾选状态添加新配置
-            if (IsWeChatChecked)
-            {
-                processList.AddRange("WeChat|Weixin".Split('|'));
-                classList.AddRange("AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon".Split('|'));
-                titleList.AddRange("语音|微信音视频通话|微信".Split('|'));
-            }
-
-            if (IsWeChatWorkChecked)
-            {
-                processList.Add("WXWork");
-                classList.Add("WXworkWindow");
-                titleList.Add("语音");
-            }
-
-            if (IsQQChecked)
-            {
-                processList.Add("QQ");
-                classList.Add("Chrome_RenderWidgetHostHWND");
-                titleList.Add("语音");
-            }
-
-            // 获取现有的手动配置（过滤掉自动生成的配置）
-            var existingProcess = ConfigurationHelper.GetSetting("监控窗口进程名").Split('|')
-                .Where(x => !string.IsNullOrEmpty(x)
-                            && !x.Contains("要监控")
-                            && !_appConfigMap.Values.Any(v => v.Process.Split('|').Contains(x))); // 排除自动配置项 - 检查分割后的进程名
-
-            var existingClass = ConfigurationHelper.GetSetting("监控窗口类名").Split('|')
-                .Where(x => !string.IsNullOrEmpty(x)
-                            && !x.Contains("要监控")
-                            && !_appConfigMap.Values.Any(v =>
-                                v.Class.Split('|').Contains(x))); // 检查分割后的类名 // 排除自动配置项
-
-            var existingTitle = ConfigurationHelper.GetSetting("监控窗口标题").Split('|')
-                .Where(x => !string.IsNullOrEmpty(x)
-                            && !x.Contains("要监控")
-                            && !_appConfigMap.Values.Any(v =>
-                                v.Title.Split('|').Contains(x))); // 检查分割后的标题 // 排除自动配置项
-
-            // 合并配置（当前勾选项 + 手动添加项）
-            var finalProcess = processList.Union(existingProcess).Distinct().ToArray();
-            var finalClass = classList.Union(existingClass).Distinct().ToArray();
-            var finalTitle = titleList.Union(existingTitle).Distinct().ToArray();
-
-            // 保存配置
-            ConfigurationHelper.SetSetting("监控窗口进程名",
-                string.Join("|", finalProcess) + "|要监控的窗口进程名");
-            ConfigurationHelper.SetSetting("监控窗口类名",
-                string.Join("|", finalClass) + "|要监控的窗口类名");
-            ConfigurationHelper.SetSetting("监控窗口标题",
-                string.Join("|", finalTitle) + "|要监控的窗口标题");
-
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                // 更新 UI
-                Pn = string.Join("|", finalProcess) + "|要监控的窗口进程名";
-                Cn = string.Join("|", finalClass) + "|要监控的窗口类名";
-                Tt = string.Join("|", finalTitle) + "|要监控的窗口标题";
-            });
-
-            MonitorConfigChanged?.Invoke(this, EventArgs.Empty);
+                new MonitoredWindow
+                {
+                    ProcessName = "WeChat|Weixin",
+                    ClassName = "AudioWnd|ILinkAudioWnd|Qt51514QWindowIcon",
+                    Title = "语音|微信音视频通话|微信",
+                    Width = 360,
+                    Height = 640,
+                    SizeCheckEnabled = false,
+                },
+                new MonitoredWindow
+                {
+                    ProcessName = "WXWork",
+                    ClassName = "WXworkWindow",
+                    Title = "语音",
+                },
+                new MonitoredWindow
+                {
+                    ProcessName = "QQ",
+                    ClassName = "Chrome_RenderWidgetHostHWND",
+                    Title = "语音",
+                },
+            };
         }
 
+        /// <summary>
+        /// 从旧版三个 string + 微信宽高 + 全局启用开关 迁移成新结构。
+        /// 旧 key 全部保留不动，新结构写入「监控窗口列表」。
+        /// </summary>
+        private List<MonitoredWindow> MigrateFromLegacyConfig()
+        {
+            string legacyPn = ConfigurationHelper.GetSetting("监控窗口进程名");
+            string legacyCn = ConfigurationHelper.GetSetting("监控窗口类名");
+            string legacyTt = ConfigurationHelper.GetSetting("监控窗口标题");
+
+            bool.TryParse(ConfigurationHelper.GetSetting("是否启用微信窗口大小检测"), out bool legacyEnabled);
+            int.TryParse(ConfigurationHelper.GetSetting("微信通话窗口宽度"), out int legacyW);
+            int.TryParse(ConfigurationHelper.GetSetting("微信通话窗口高度"), out int legacyH);
+
+            int? legacyWidth = legacyW > 0 ? legacyW : (int?)null;
+            int? legacyHeight = legacyH > 0 ? legacyH : (int?)null;
+
+            // 把旧格式按 '|' 拆分，过滤掉"要监控的窗口xx"这种提示后缀
+            string[] pnArr = (legacyPn ?? string.Empty)
+                .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(s => !s.StartsWith("要监控")).ToArray();
+            string[] cnArr = (legacyCn ?? string.Empty)
+                .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(s => !s.StartsWith("要监控")).ToArray();
+            string[] ttArr = (legacyTt ?? string.Empty)
+                .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(s => !s.StartsWith("要监控")).ToArray();
+
+            // 按进程数取最大长度，每条独立成一项（与旧行为兼容：旧版就是按位对应）
+            int count = Math.Max(Math.Max(pnArr.Length, cnArr.Length), ttArr.Length);
+            var list = new List<MonitoredWindow>();
+
+            for (int i = 0; i < count; i++)
+            {
+                string pn = i < pnArr.Length ? pnArr[i] : string.Empty;
+                string cn = i < cnArr.Length ? cnArr[i] : string.Empty;
+                string tt = i < ttArr.Length ? ttArr[i] : string.Empty;
+
+                // 跳过全空的占位
+                if (string.IsNullOrWhiteSpace(pn) && string.IsNullOrWhiteSpace(cn) && string.IsNullOrWhiteSpace(tt))
+                {
+                    continue;
+                }
+
+                bool isWeixin = pn.Contains("Weixin", StringComparison.OrdinalIgnoreCase);
+                list.Add(new MonitoredWindow
+                {
+                    ProcessName = pn,
+                    ClassName = cn,
+                    Title = tt,
+                    Width = isWeixin ? legacyWidth : null,
+                    Height = isWeixin ? legacyHeight : null,
+                    SizeCheckEnabled = isWeixin && legacyEnabled && legacyWidth.HasValue && legacyHeight.HasValue,
+                });
+            }
+
+            if (list.Count == 0)
+            {
+                list = BuildDefaultList();
+            }
+
+            return list;
+        }
+
+        [RelayCommand]
+        private void AddMonitoredWindow()
+        {
+            var item = new MonitoredWindow
+            {
+                ProcessName = string.Empty,
+                ClassName = string.Empty,
+                Title = string.Empty,
+                SizeCheckEnabled = false,
+            };
+            TryAddMonitoredWindow(item, out _, showDuplicateMessage: true);
+        }
+
+        [RelayCommand]
+        private void RemoveMonitoredWindow(MonitoredWindow? item)
+        {
+            if (item == null) return;
+            MonitoredWindows.Remove(item);
+        }
+
+        [RelayCommand]
+        private void ClearMonitoredWindows()
+        {
+            if (MonitoredWindows.Count == 0) return;
+            var result = MessageBox.Show(
+                "确定要清空所有监控窗口吗？该操作不可撤销。",
+                "清空监控列表",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Warning);
+            if (result == MessageBoxResult.OK)
+            {
+                MonitoredWindows.Clear();
+            }
+        }
+
+        /// <summary>
+        /// 试图把 <paramref name="item"/> 加入到监控列表。若已有完全相同的条目（含宽高/启用检测），
+        /// 则不会重复加入；可通过 <paramref name="showDuplicateMessage"/> 决定是否弹提示。
+        /// </summary>
+        public bool TryAddMonitoredWindow(MonitoredWindow item, out MonitoredWindow? duplicate, bool showDuplicateMessage = true)
+        {
+            duplicate = null;
+            if (item == null) return false;
+
+            string newKey = BuildDedupeKey(item);
+            foreach (var existing in MonitoredWindows)
+            {
+                if (BuildDedupeKey(existing) == newKey)
+                {
+                    duplicate = existing;
+                    if (showDuplicateMessage)
+                    {
+                        MessageBox.Show(
+                            $"该窗口已存在监控列表里，无需重复添加:\n{existing.DisplayName}",
+                            "添加监控窗口",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                    }
+                    return false;
+                }
+            }
+
+            MonitoredWindows.Add(item);
+            return true;
+        }
+
+        /// <summary>
+        /// 构造用于去重比较的 key：进程名/类名/标题/宽/高/启用检测 全部一致才算重复。
+        /// 字符串字段忽略大小写并 trim；数值字段直接用字符串拼接以兼容 null。
+        /// </summary>
+        private static string BuildDedupeKey(MonitoredWindow w)
+        {
+            return string.Join("|",
+                (w.ProcessName ?? string.Empty).Trim().ToLowerInvariant(),
+                (w.ClassName ?? string.Empty).Trim().ToLowerInvariant(),
+                (w.Title ?? string.Empty).Trim().ToLowerInvariant(),
+                w.Width.HasValue ? w.Width.Value.ToString() : "null",
+                w.Height.HasValue ? w.Height.Value.ToString() : "null",
+                w.SizeCheckEnabled ? "1" : "0");
+        }
 
         public void GetDiskInFo()
         {
