@@ -266,7 +266,7 @@
                                         <Button Content="清空"
                                                 Margin="6,0,0,0"
                                                 Padding="10,2"
-                                                Command="{Binding ClearMonitoredWindowsCommand}"
+                                                Command="{Binding DataContext.ClearMonitoredWindowsCommand, ElementName=DataGrid_MonitoredWindows}"
                                                 ToolTip="清空整个监控列表（不可撤销）" />
                                     </StackPanel>
 
@@ -351,6 +351,19 @@
                                 <!--     </Hyperlink> -->
                                 <!-- </TextBlock> -->
                                 <TextBlock FontSize="20" Foreground="Red" Text="软件是免费且开源的(如果是购买的,去差评并退款)" />
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <TextBlock VerticalAlignment="Center"
+                                               FontSize="14"
+                                               Text="更新模块：" />
+                                    <ComboBox x:Name="Cb_UpdateModule"
+                                              Width="160"
+                                              Margin="6,0,0,0"
+                                              SelectionChanged="Cb_UpdateModule_OnSelectionChanged"
+                                              ToolTip="GitHub：新模块，比对 GitHub Releases，有新版本时弹出通知并跳转。&#10;Legacy：旧模块，使用 52shell 后端，含自动下载安装。">
+                                        <ComboBoxItem Content="GitHub（新模块）" />
+                                        <ComboBoxItem Content="Legacy（旧模块）" />
+                                    </ComboBox>
+                                </StackPanel>
                             </StackPanel>
                         </TabItem>
                     </TabControl>

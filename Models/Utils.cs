@@ -540,6 +540,22 @@ exit
             {
                 ConfigurationHelper.SetSetting("结束录音快捷键", "Ctrl+End");
             }
+
+            // 更新模块：可选值 "GitHub"（新模块，比对 GitHub Releases）或 "Legacy"（旧模块，使用 52shell 后端）。
+            // 默认使用新模块；如需回滚到老模块，可在此改为 "Legacy"。
+            if (ConfigurationHelper.GetSetting("更新模块") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("更新模块", "GitHub");
+            }
+
+            // GitHub镜像：给 GitHub 更新模块用的备用 URL 列表（按顺序尝试）。
+            // 多个 URL 用 "|" 分隔，例如：
+            //   "https://kkgithub.com/1592363624/CallRecording/releases.atom|https://gh-proxy.com/https://github.com/1592363624/CallRecording/releases.atom"
+            // 留空则使用内置默认源（GitHub 直连 + 几个常见国内镜像 + REST API 兜底）。
+            if (ConfigurationHelper.GetSetting("GitHub镜像") == "NULL")
+            {
+                ConfigurationHelper.SetSetting("GitHub镜像", "");
+            }
         }
     }
 }

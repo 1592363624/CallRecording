@@ -80,6 +80,15 @@ public partial class MainWindow
             // 初始化保留独立录音文件复选框
             bool.TryParse(ConfigurationHelper.GetSetting("保留独立录音文件"), out bool isKeepOriginalFiles);
             KeepOriginalFiles.IsChecked = isKeepOriginalFiles;
+
+            // 初始化更新模块 ComboBox 默认选项
+            var module = ConfigurationHelper.GetSetting("更新模块");
+            if (string.IsNullOrWhiteSpace(module) || module == "NULL")
+            {
+                module = "GitHub";
+            }
+            Cb_UpdateModule.SelectedIndex =
+                string.Equals(module, "Legacy", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
         };
         // 订阅通知按钮事件
         ToastNotificationManagerCompat.OnActivated += toastArgs =>
@@ -103,6 +112,21 @@ public partial class MainWindow
                             Process.Start(new ProcessStartInfo
                             {
                                 FileName = "https://github.com/1592363624/CallRecording/releases",
+                                UseShellExecute = true
+                            });
+                        });
+                    }
+                    else if (actionValue == "ConfirmGitHubUpdate")
+                    {
+                        // 新模块（GitHub Releases）触发的更新通知：打开对应 release 的页面
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            var url = args.TryGetValue("url", out var u) && !string.IsNullOrWhiteSpace(u)
+                                ? u
+                                : GitHubUpdateService.ReleasesPageUrl;
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = url,
                                 UseShellExecute = true
                             });
                         });
@@ -158,8 +182,35 @@ public partial class MainWindow
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
-    //检测更新
+    //检测更新 - 调度方法：根据配置选择使用新的 GitHub 模块还是旧的 Legacy 模块
     private async Task CheckUpdate()
+    {
+        try
+        {
+            // 读取当前使用的更新模块；默认 GitHub
+            string module = ConfigurationHelper.GetSetting("更新模块");
+            if (string.IsNullOrWhiteSpace(module) || module == "NULL")
+            {
+                module = "GitHub";
+            }
+
+            if (string.Equals(module, "Legacy", StringComparison.OrdinalIgnoreCase))
+            {
+                await CheckUpdateLegacy();
+            }
+            else
+            {
+                await CheckUpdateGitHub();
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine("[CheckUpdate] 调度异常: " + e);
+        }
+    }
+
+    // 检测更新 - 旧模块（52shell 后端，含自动下载安装逻辑）
+    private async Task CheckUpdateLegacy()
     {
         try
         {
@@ -213,6 +264,79 @@ public partial class MainWindow
         {
             Debug.WriteLine(e);
             throw;
+        }
+    }
+
+    // 检测更新 - 新模块（GitHub Releases）：仅比对版本+弹出通知跳转，不做自动下载安装
+    private async Task CheckUpdateGitHub()
+    {
+        try
+        {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+            var currentVersion = Version.Parse(fileVersionInfo.FileVersion ?? "0.0.0");
+            Resources.Add("WindowTitle", "通话录音助手 v" + fileVersionInfo.FileVersion);
+
+            var release = await GitHubUpdateService.GetLatestReleaseAsync();
+            if (release == null || string.IsNullOrWhiteSpace(release.TagName))
+            {
+                // 拉取失败，按"没有新版本"处理，不打扰用户
+                text_updateLog.Text =
+                    "\n未能从 GitHub 获取最新版本信息（所有镜像源都失败了）。\n" +
+                    "可能原因：网络受限 / DNS 污染 / 防火墙拦截。\n" +
+                    "临时方案：在「关于软件」中切到 Legacy 模块。\n" +
+                    "长期方案：在 appsettings.json 的 \"GitHub镜像\" 配置项里填上可用的镜像 URL（多个用 | 分隔）。\n";
+                logger.Warn("[CheckUpdateGitHub] 获取最新 release 失败（所有源都失败）");
+                return;
+            }
+
+            var latestVersion = GitHubUpdateService.TryParseTagAsVersion(release.TagName);
+
+            // 用 release body 作为系统公告（面板展示）
+            if (!string.IsNullOrWhiteSpace(release.Body))
+            {
+                text_updateLog.Text = "\n" + release.Body + "\n";
+            }
+            else
+            {
+                text_updateLog.Text = "\n当前最新版本：" + release.TagName + "\n";
+            }
+
+            if (latestVersion != null && latestVersion > currentVersion)
+            {
+                try
+                {
+                    GlobalsVariables.是否有新版本 = true;
+
+                    var htmlUrl = string.IsNullOrWhiteSpace(release.HtmlUrl)
+                        ? GitHubUpdateService.ReleasesPageUrl
+                        : release.HtmlUrl;
+
+                    new ToastContentBuilder()
+                        .AddText($"检测到 GitHub 上有新版本：{release.TagName}")
+                        .AddText("点击下方按钮前往 release 页面查看并下载")
+                        .AddButton(new ToastButton()
+                            .SetContent("前往 release 页面")
+                            .AddArgument("action", "ConfirmGitHubUpdate")
+                            .AddArgument("url", htmlUrl))
+                        .AddButton(new ToastButtonDismiss("稍后再说"))
+                        .Show();
+
+                    logger.Info($"检测到 GitHub 新版本：{release.TagName}（当前 {currentVersion}），跳转链接：{htmlUrl}");
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine("[CheckUpdateGitHub] Toast 显示失败: " + e.Message);
+                }
+            }
+            else
+            {
+                logger.Info($"[CheckUpdateGitHub] 当前已是最新（{currentVersion}），GitHub 最新：{release.TagName}");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine("[CheckUpdateGitHub] 异常: " + e);
         }
     }
 
@@ -516,6 +640,17 @@ public partial class MainWindow
     private void Cb_AudioFormats_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         ConfigurationHelper.SetSetting("音频格式", cb_AudioFormats.SelectedItem.ToString());
+    }
+
+    // 更新模块切换：选择项 0=GitHub（新模块），1=Legacy（旧模块）
+    private void Cb_UpdateModule_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (Cb_UpdateModule.SelectedItem is ComboBoxItem item)
+        {
+            var value = item.Content?.ToString()?.Contains("Legacy") == true ? "Legacy" : "GitHub";
+            ConfigurationHelper.SetSetting("更新模块", value);
+            Debug.WriteLine($"[更新模块] 已切换为：{value}");
+        }
     }
 
     private void Btn_ChooseSavePath_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
